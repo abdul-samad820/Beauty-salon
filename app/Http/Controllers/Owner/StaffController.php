@@ -221,29 +221,34 @@ class StaffController extends Controller
         ]);
     }
 
-    public function destroy($id)
-    {
-        $currentTenant = app('currentTenant');
+   public function destroy($id)
+{
+    $currentTenant = app('currentTenant');
 
-        $staff = Staff::with('user')
-            ->where('tenant_id', $currentTenant->id)
-            ->find($id);
+    $staff = Staff::with('user')
+        ->where('tenant_id', $currentTenant->id)
+        ->find($id);
 
-        if (! $staff) {
-            return response()->json([
-                'message' => 'Staff not found',
-            ], 404);
+    if (! $staff) {
+        return response()->json([
+            'message' => 'Staff not found',
+        ], 404);
+    }
+
+    DB::transaction(function () use ($staff) {
+
+        $staff->delete();
+
+        if ($staff->user) {
+            $staff->user->update([
+                'is_active' => false,
+            ]);
         }
 
-        DB::transaction(function () use ($staff) {
-            $staff->delete();
-            if ($staff->user) {
-                $staff->user->delete();
-            }
-        });
+    });
 
-        return response()->json([
-            'message' => 'Staff removed successfully',
-        ]);
-    }
+    return response()->json([
+        'message' => 'Staff removed successfully',
+    ]);
+}
 }

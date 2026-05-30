@@ -13,20 +13,25 @@ class ProductController extends Controller
     // Saare products
     public function index()
     {
-        $products = Product::where('is_active', true)
-            ->orderBy('name')
-            ->paginate(20)
-            ->map(function ($product) {
-                return [
-                    'id' => $product->id,
-                    'name' => $product->name,
-                    'category' => $product->category,
-                    'price' => $product->price,
-                    'quantity' => $product->quantity,
-                    'low_stock_threshold' => $product->low_stock_threshold,
-                    'is_low_stock' => $product->isLowStock(), // true/false
-                ];
-            });
+      $products = Product::where(
+    'tenant_id',
+    app('currentTenant')->id
+)
+->where('is_active', true)
+->orderBy('name')
+->paginate(20);
+
+$products->getCollection()->transform(function ($product) {
+    return [
+        'id' => $product->id,
+        'name' => $product->name,
+        'category' => $product->category,
+        'price' => $product->price,
+        'quantity' => $product->quantity,
+        'low_stock_threshold' => $product->low_stock_threshold,
+        'is_low_stock' => $product->isLowStock(),
+    ];
+});
 
         return response()->json([
             'message' => 'Products fetched successfully',
@@ -48,14 +53,16 @@ class ProductController extends Controller
 
         $product = DB::transaction(function () use ($request) {
 
-            $product = Product::create([
-                'name' => $request->name,
-                'category' => $request->category,
-                'price' => $request->price,
-                'quantity' => $request->quantity,
-                'low_stock_threshold' => $request->low_stock_threshold ?? 5,
-                'is_active' => true,
-            ]);
+           $product = Product::create([
+    'tenant_id' => app('currentTenant')->id,
+
+    'name' => $request->name,
+    'category' => $request->category,
+    'price' => $request->price,
+    'quantity' => $request->quantity,
+    'low_stock_threshold' => $request->low_stock_threshold ?? 5,
+    'is_active' => true,
+]);
 
             if ($request->quantity > 0) {
                 InventoryTransaction::create([
@@ -161,9 +168,13 @@ class ProductController extends Controller
     // Low stock products — dashboard alert ke liye
     public function lowStock()
     {
-        $products = Product::where('is_active', true)
-            ->whereRaw('quantity <= low_stock_threshold')
-            ->get();
+        $products = Product::where(
+    'tenant_id',
+    app('currentTenant')->id
+)
+->where('is_active', true)
+->whereRaw('quantity <= low_stock_threshold')
+->get();
 
         return response()->json([
             'message' => 'Low stock products',

@@ -38,7 +38,13 @@ class HomeController extends Controller
             ->orderBy('start_time')
             ->get();
 
-        return view('customer.home.index', compact('tenant', 'services', 'staff', 'todayBookings'));
+       return view('customer.home.index', compact(
+    'tenant',
+    'services',
+    'staff',
+    'todayBookings',
+    'subdomain'
+));
     }
 
     /**

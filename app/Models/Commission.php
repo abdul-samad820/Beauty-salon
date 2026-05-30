@@ -10,12 +10,14 @@ class Commission extends Model
     use HasFactory;
 
     protected $fillable = [
-        'tenant_id',
-        'staff_id',
-        'appointment_id',
-        'commission_amount',
-        'status',  // 'pending' | 'paid'
-    ];
+    'tenant_id',
+    'staff_id',
+    'appointment_id',
+    'service_price',
+    'commission_percent',
+    'commission_amount',
+    'status',
+];
 
     public function tenant()
     {

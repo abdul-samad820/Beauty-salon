@@ -12,7 +12,12 @@ class ServiceController extends Controller
     // Saari services fetch karo
     public function index()
     {
-        $services = Service::where('is_active', true)->paginate(20);
+        $services = Service::where(
+    'tenant_id',
+    app('currentTenant')->id
+)
+->where('is_active', true)
+->paginate(20);
 
         return response()->json([
             'message' => 'Services fetched successfully',
@@ -41,14 +46,15 @@ class ServiceController extends Controller
         ]);
 
         $service = Service::create([
-            'name' => $request->name,
-            'description' => $request->description,
-            'category' => $request->category,
-            'duration_minutes' => $request->duration_minutes,
-            'price' => $request->price,
-            'is_active' => true,
-            // tenant_id BelongsToTenant trait automatically set karega
-        ]);
+    'tenant_id' => app('currentTenant')->id,
+
+    'name' => $request->name,
+    'description' => $request->description,
+    'category' => $request->category,
+    'duration_minutes' => $request->duration_minutes,
+    'price' => $request->price,
+    'is_active' => true,
+]);
 
         return response()->json([
             'message' => 'Service created successfully',

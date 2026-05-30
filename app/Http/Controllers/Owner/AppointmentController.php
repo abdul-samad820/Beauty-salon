@@ -84,11 +84,11 @@ class AppointmentController extends Controller
         }
 
         // Cancelled appointment ko update nahi kar sakte
-        if ($appointment->status === 'cancelled') {
-            return response()->json([
-                'message' => 'Cancelled appointment ko update nahi kar sakte.',
-            ], 400);
-        }
+       if (in_array($appointment->status, ['cancelled', 'completed'])) {
+    return response()->json([
+        'message' => 'Completed ya cancelled appointment ko update nahi kar sakte.'
+    ], 400);
+}
 
         $appointment->update(['status' => $request->status]);
 

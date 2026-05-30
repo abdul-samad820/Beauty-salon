@@ -65,7 +65,7 @@
       <div class="ok-box"><i class="bi bi-check-circle-fill"></i> {{ session('success') }}</div>
     @endif
 
-    <form method="POST" action="{{ route('customer.login.post', $subdomain) }}">
+    <form method="POST" action="{{ route('customer.login.post', request()->route('subdomain')) }}">
       @csrf
       <div class="cfl has-icon">
         <i class="bi bi-envelope-fill cfl-ic"></i>

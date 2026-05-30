@@ -139,7 +139,7 @@
         </div>
       </div>
 
-      <form method="POST" action="{{ route('customer.book', $subdomain) }}" id="bookForm">
+      <form method="POST" action="{{ route('customer.book', request()->route('subdomain')) }}" id="bookForm">
         @csrf
         <input type="hidden" name="service_id"       id="f_svc_id" />
         <input type="hidden" name="staff_id"         id="f_staff_id" />
@@ -243,7 +243,7 @@ function fetchSlots() {
   const params = new URLSearchParams({ date: selectedDate, service_id: selectedSvcId });
   if (selectedStaffId) params.append('staff_id', selectedStaffId);
 
-  fetch(`/{{ request()->route('subdomain') }}/slots?${params}`, {
+  fetch(`{{ route('customer.slots', request()->route('subdomain')) }}?${params}` {
     headers: { 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' }
   })
   .then(r => r.json())

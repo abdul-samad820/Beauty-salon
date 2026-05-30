@@ -58,7 +58,7 @@
       <div class="err-box"><i class="bi bi-exclamation-circle-fill"></i> {{ $errors->first() }}</div>
     @endif
 
-    <form method="POST" action="{{ route('customer.register.post', $subdomain) }}">
+    <form method="POST" action="{{ route('customer.register', request()->route('subdomain')) }}">
       @csrf
       <div class="cfl has-icon">
         <i class="bi bi-person-fill cfl-ic"></i>

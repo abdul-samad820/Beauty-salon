@@ -32,10 +32,13 @@ Route::get('/', fn () => redirect()->route('login'));
 |--------------------------------------------------------------------------
 */
 Route::middleware('guest')->group(function () {
-    Route::get('/login', [AuthWebController::class, 'showLogin'])->name('login');
-    Route::post('/login', [AuthWebController::class, 'login'])->name('login.post');
-    Route::get('/login', [CustomerAuthController::class, 'showLogin'])
-        ->name('customer.login');
+
+    Route::get('/login', [AuthWebController::class, 'showLogin'])
+        ->name('login');
+
+    Route::post('/login', [AuthWebController::class, 'login'])
+        ->name('login.post');
+
 });
 
 Route::post('/logout', [AuthWebController::class, 'logout'])

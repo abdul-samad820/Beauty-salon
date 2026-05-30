@@ -25,7 +25,10 @@ class CustomerAuthController extends Controller
             ->where('status', 'active')
             ->firstOrFail();
 
-        return view('customer.auth.login', compact('tenant'));
+      return view('customer.auth.login', [
+    'tenant' => $tenant,
+    'subdomain' => $subdomain,
+]);
     }
 
     /**
@@ -37,7 +40,10 @@ class CustomerAuthController extends Controller
             ->where('status', 'active')
             ->firstOrFail();
 
-        return view('customer.auth.register', compact('tenant'));
+      return view('customer.auth.register', [
+    'tenant' => $tenant,
+    'subdomain' => $subdomain,
+]);
     }
 
     /**
