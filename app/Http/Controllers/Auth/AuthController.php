@@ -8,6 +8,9 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
+    /**
+     * Handle user login.
+     */
     public function login(Request $request)
     {
         $request->validate([
@@ -17,23 +20,23 @@ class AuthController extends Controller
 
         if (! Auth::attempt($request->only('email', 'password'))) {
             return response()->json([
-                'message' => 'Email ya password galat hai.',
+                'message' => 'Invalid email or password.',
             ], 401);
         }
 
         $user = Auth::user();
 
-        // Inactive user block karo
+        // Block inactive users
         if (! $user->is_active) {
 
             Auth::logout();
 
             return response()->json([
-                'message' => 'Account inactive hai. Owner se contact karo.',
+                'message' => 'Account is inactive. Please contact the owner.',
             ], 403);
         }
 
-        // Token banao
+        // Create authentication token
         $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
@@ -43,15 +46,18 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'role' => $user->getRoleNames()->first(), // Spatie se role
+                'role' => $user->getRoleNames()->first(), // Spatie role
                 'tenant_id' => $user->tenant_id,
             ],
         ]);
     }
 
+    /**
+     * Handle user logout.
+     */
     public function logout(Request $request)
     {
-        // Current token delete karo
+        // Delete the current access token
         if ($request->user()?->currentAccessToken()) {
 
             $request->user()

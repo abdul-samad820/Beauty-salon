@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web\Owner;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 
 class SettingsWebController extends Controller
 {
@@ -17,36 +18,70 @@ class SettingsWebController extends Controller
     public function update(Request $request)
     {
         $tenant = app('currentTenant');
+        $type = $request->input('form_type');
 
-        $request->validate([
-            'business_name' => 'required|string|max:255',
-            'phone' => 'required|string|max:20',
-            'address' => 'nullable|string|max:500',
-        ]);
+        if ($type === 'info') {
+            $request->validate([
+                'business_name' => 'required|string|max:255',
+                'email' => 'nullable|email|max:255',
+                'phone' => 'nullable|string|max:20',
+                'address' => 'nullable|string|max:500',
+                'description' => 'nullable|string|max:1000',
+                'instagram_url' => 'nullable|url|max:255',
+                'facebook_url' => 'nullable|url|max:255',
+            ]);
 
-        $settings = $tenant->settings ?? [];
+            $tenant->update([
+                'name' => $request->business_name,
+                'email' => $request->email,
+                'phone' => $request->phone,
+                'address' => $request->address,
+                'description' => $request->description,
+                'instagram_url' => $request->instagram_url,
+                'facebook_url' => $request->facebook_url,
+            ]);
 
-        if ($request->filled('working_start') && $request->filled('working_end')) {
-            $days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+            return back()->with('success', 'Success: Salon information updated successfully.');
+        }
+
+        if ($type === 'hours') {
+            $days = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+            $settings = $tenant->settings ?? [];
+
             foreach ($days as $day) {
-                if ($request->boolean("open_{$day}")) {
-                    $settings['working_hours'][$day] = $request->input("open_{$day}_start", '09:00').'-'.$request->input("open_{$day}_end", '20:00');
+                $dayData = $request->input("days.{$day}");
+                $isOpen = ! empty($dayData['open']);
+
+                if ($isOpen && ! empty($dayData['open_time']) && ! empty($dayData['close_time'])) {
+                    $settings['working_hours'][$day] = $dayData['open_time'].'-'.$dayData['close_time'];
                 } else {
                     $settings['working_hours'][$day] = null;
                 }
             }
-            $settings['working_hours']['sun'] = $request->boolean('open_sun')
-                ? ($request->input('open_sun_start', '10:00').'-'.$request->input('open_sun_end', '18:00'))
-                : null;
+
+            $tenant->update(['settings' => $settings]);
+
+            return back()->with('success', 'Success: Operating hours updated successfully.');
         }
 
-        $tenant->update([
-            'name' => $request->business_name,
-            'phone' => $request->phone,
-            'address' => $request->address,
-            'settings' => $settings,
+        return back()->with('error', 'Invalid form submission.');
+    }
+
+    public function updatePassword(Request $request)
+    {
+        $request->validate([
+            'current_password' => 'required',
+            'password' => 'required|min:8|confirmed',
         ]);
 
-        return back()->with('success', 'Settings save ho gayi!');
+        $user = auth()->user();
+
+        if (! Hash::check($request->current_password, $user->password)) {
+            return back()->withErrors(['current_password' => 'Current password is incorrect.']);
+        }
+
+        $user->update(['password' => Hash::make($request->password)]);
+
+        return back()->with('success', 'Success: Password updated successfully.');
     }
 }

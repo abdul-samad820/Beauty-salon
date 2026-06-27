@@ -6,13 +6,18 @@ use App\Http\Controllers\Controller;
 use App\Jobs\LowStockAlertJob;
 use App\Models\InventoryTransaction;
 use App\Models\Product;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class InventoryController extends Controller
 {
-    // Stock add karo — naya maal aaya
+    /**
+     * Add stock to inventory.
+     *
+     * @return JsonResponse
+     */
     public function stockIn(Request $request)
     {
         $request->validate([
@@ -58,7 +63,11 @@ class InventoryController extends Controller
         ]);
     }
 
-    // Stock use hua — service me use karo
+    /**
+     * Deduct stock (e.g., used in service).
+     *
+     * @return JsonResponse
+     */
     public function stockOut(Request $request)
     {
         $request->validate([
@@ -116,6 +125,7 @@ class InventoryController extends Controller
 
         $updatedProduct = $product->fresh();
 
+        // Trigger low stock alert if the threshold is reached
         if (
             $updatedProduct->quantity ==
             $updatedProduct->low_stock_threshold

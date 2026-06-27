@@ -6,14 +6,18 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 
+/**
+ * AuthWebController
+ *
+ * Centralized web state authentications and post-login redirection channels layer.
+ */
 class AuthWebController extends Controller
 {
     /**
-     * Login form dikhao
+     * Show the luxury baseline login system form view layout interface.
      */
     public function showLogin()
     {
-        // Pehle se logged in hai to redirect karo
         if (Auth::check()) {
             return $this->redirectByRole(Auth::user());
         }
@@ -22,7 +26,7 @@ class AuthWebController extends Controller
     }
 
     /**
-     * Login process karo — role ke hisaab se redirect
+     * Process web authentication validation parameters and dispatch strategic route redirects.
      */
     public function login(Request $request)
     {
@@ -34,18 +38,18 @@ class AuthWebController extends Controller
         if (! Auth::attempt($request->only('email', 'password'), $request->boolean('remember'))) {
             return back()
                 ->withInput($request->only('email'))
-                ->withErrors(['email' => 'Email ya password galat hai.']);
+                ->withErrors(['email' => 'Access Denied: Invalid account credentials entered.']);
         }
 
         $user = Auth::user();
 
-        // Inactive user block karo
+        // FIXED SEC-001: Enforce global platform activation checking bounds matrix safely
         if (! $user->is_active) {
             Auth::logout();
 
             return back()
                 ->withInput($request->only('email'))
-                ->withErrors(['email' => 'Aapka account inactive hai. Admin se contact karo.']);
+                ->withErrors(['email' => 'Access Denied: Invalid account credentials entered.']);
         }
 
         $request->session()->regenerate();
@@ -54,7 +58,7 @@ class AuthWebController extends Controller
     }
 
     /**
-     * Logout
+     * Safely terminate web login tracking cookies and flush active runtime memory maps.
      */
     public function logout(Request $request)
     {
@@ -62,25 +66,25 @@ class AuthWebController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect()->route('login')->with('success', 'Aap logout ho gaye hain.');
+        return redirect()->route('login')->with('success', 'Notification: Session security scope terminated successfully.');
     }
 
     /**
-     * Role ke hisaab se redirect karo
+     * Redirect users dynamically based on their validated administrative roles.
      */
     private function redirectByRole($user)
     {
-        if ($user->hasRole('super_admin')) {
-            return redirect()->route('superadmin.dashboard');
+        $route = $user->dashboardRouteName();
+
+        if ($route) {
+            return redirect()->route($route);
         }
 
-        if ($user->hasRole('owner')) {
-            return redirect()->route('owner.dashboard');
-        }
-
-        // Unknown role — logout karke wapas bhejo
+        // Unknown role — secure fallback layer execution boundary logout
         Auth::logout();
 
-        return redirect()->route('login')->withErrors(['email' => 'Aapke account ka role set nahi hai.']);
+        return redirect()->route('login')->withErrors([
+            'email' => 'Access Denied: Your user account profile does not possess a valid administrative security role assigned.',
+        ]);
     }
 }

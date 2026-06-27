@@ -9,12 +9,15 @@ use Illuminate\Support\Facades\Auth;
 use Symfony\Component\HttpFoundation\Response;
 
 /**
- * Owner web routes ke liye —
- * User ka tenant_id se tenant load karta hai aur
- * app container mein bind karta hai.
+ * TenantWebMiddleware
+ * * Handles loading the tenant based on the authenticated user's tenant_id
+ * and binds it to the application container for web routes.
  */
 class TenantWebMiddleware
 {
+    /**
+     * Handle an incoming request.
+     */
     public function handle(Request $request, Closure $next): Response
     {
         if (! Auth::check()) {
@@ -23,22 +26,31 @@ class TenantWebMiddleware
 
         $user = Auth::user();
 
+        // Ensure the user has the 'owner' role
+        if (! $user->hasAnyRole(['owner', 'staff'])) {
+            abort(403, 'Access restricted to salon staff and owners.');
+        }
+
+        // Verify the user is associated with a tenant
         if (! $user->tenant_id) {
             abort(403, 'No tenant assigned to this account.');
         }
 
+        // Retrieve the tenant and verify active status
         $tenant = Tenant::where('id', $user->tenant_id)
             ->where('status', 'active')
             ->first();
 
         if (! $tenant) {
             Auth::logout();
+            $request->session()->invalidate();
+            $request->session()->regenerateToken();
 
             return redirect()->route('login')
-                ->withErrors(['email' => 'Aapka parlour account suspended ya inactive hai.']);
+                ->withErrors(['email' => 'Your parlour account is suspended or inactive.']);
         }
 
-        // Poori app mein accessible
+        // Bind the tenant to the application container for global access
         app()->instance('currentTenant', $tenant);
         $request->merge(['tenant' => $tenant]);
 

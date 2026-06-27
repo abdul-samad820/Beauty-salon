@@ -4,20 +4,25 @@ namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
 use App\Models\Service;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
 
 class ServiceController extends Controller
 {
-    // Saari services fetch karo
+    /**
+     * Retrieve all services for the current tenant.
+     *
+     * @return JsonResponse
+     */
     public function index()
     {
         $services = Service::where(
-    'tenant_id',
-    app('currentTenant')->id
-)
-->where('is_active', true)
-->paginate(20);
+            'tenant_id',
+            app('currentTenant')->id
+        )
+            ->where('is_active', true)
+            ->paginate(20);
 
         return response()->json([
             'message' => 'Services fetched successfully',
@@ -25,7 +30,11 @@ class ServiceController extends Controller
         ]);
     }
 
-    // Nayi service banao
+    /**
+     * Store a new service.
+     *
+     * @return JsonResponse
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -46,15 +55,14 @@ class ServiceController extends Controller
         ]);
 
         $service = Service::create([
-    'tenant_id' => app('currentTenant')->id,
-
-    'name' => $request->name,
-    'description' => $request->description,
-    'category' => $request->category,
-    'duration_minutes' => $request->duration_minutes,
-    'price' => $request->price,
-    'is_active' => true,
-]);
+            'tenant_id' => app('currentTenant')->id,
+            'name' => $request->name,
+            'description' => $request->description,
+            'category' => $request->category,
+            'duration_minutes' => $request->duration_minutes,
+            'price' => $request->price,
+            'is_active' => true,
+        ]);
 
         return response()->json([
             'message' => 'Service created successfully',
@@ -62,7 +70,12 @@ class ServiceController extends Controller
         ], 201);
     }
 
-    // Single service dekho
+    /**
+     * Retrieve a specific service.
+     *
+     * @param  int  $id
+     * @return JsonResponse
+     */
     public function show($id)
     {
         $service = Service::where(
@@ -82,7 +95,12 @@ class ServiceController extends Controller
         ]);
     }
 
-    // Service update karo
+    /**
+     * Update an existing service.
+     *
+     * @param  int  $id
+     * @return JsonResponse
+     */
     public function update(Request $request, $id)
     {
         $service = Service::where(
@@ -126,7 +144,12 @@ class ServiceController extends Controller
         ]);
     }
 
-    // Service delete karo
+    /**
+     * Delete a service.
+     *
+     * @param  int  $id
+     * @return JsonResponse
+     */
     public function destroy($id)
     {
         $service = Service::where(

@@ -12,7 +12,7 @@ use Illuminate\Validation\Rule;
 
 class AppointmentController extends Controller
 {
-    // Customer ki saari bookings
+    // Retrieve all bookings for the authenticated customer
     public function index(Request $request)
     {
         $appointments = Appointment::with(['service', 'staff.user'])
@@ -26,7 +26,7 @@ class AppointmentController extends Controller
         ]);
     }
 
-    // Booking karo — RACE CONDITION yahan handle hogi
+    // Store a new appointment with race condition handling
     public function store(Request $request)
     {
         $request->validate([
@@ -51,7 +51,11 @@ class AppointmentController extends Controller
             'notes' => 'nullable|string',
         ]);
 
-        $service = Service::findOrFail($request->service_id);
+        $service = Service::where(
+            'tenant_id',
+            app('currentTenant')->id
+        )->findOrFail($request->service_id);
+
         $endTime = Carbon::parse($request->start_time)
             ->addMinutes($service->duration_minutes)
             ->format('H:i');
@@ -59,23 +63,13 @@ class AppointmentController extends Controller
         try {
             $appointment = DB::transaction(function () use ($request, $endTime) {
 
-                /*
-                |-----------------------------------------------
-                | RACE CONDITION FIX — SELECT FOR UPDATE
-                |-----------------------------------------------
-                | lockForUpdate() — ye row ko lock kar deta hai
-                | Matlab ek saath 2 log same slot book karein
-                | toh sirf ek ka transaction complete hoga
-                | dusre ko wait karna padega — phir conflict milega
-                |-----------------------------------------------
-                */
                 $conflict = Appointment::lockForUpdate()
                     ->where('staff_id', $request->staff_id)
                     ->where('appointment_date', $request->appointment_date)
                     ->whereNotIn('status', ['cancelled'])
                     ->where(function ($query) use ($request, $endTime) {
-                        // Overlap check — koi bhi existing booking
-                        // is naye slot se overlap karti hai?
+                        // Check for overlapping existing bookings
+                        // that conflict with the requested time slot
                         $query->where(function ($q) use ($request, $endTime) {
                             $q->where('start_time', '<', $endTime)
                                 ->where('end_time', '>', $request->start_time);
@@ -83,12 +77,12 @@ class AppointmentController extends Controller
                     })
                     ->first();
 
-                // Conflict mila — slot already booked hai
+                // Conflict found: The slot is already booked
                 if ($conflict) {
                     throw new \Exception('SLOT_TAKEN');
                 }
 
-                // Slot available hai — booking create karo
+                // Slot is available: Proceed with booking creation
                 $appointment = Appointment::create([
                     'tenant_id' => app('currentTenant')->id,
                     'customer_id' => request()->user()->id,
@@ -112,21 +106,21 @@ class AppointmentController extends Controller
 
         } catch (\Exception $e) {
 
-            // Slot taken error
+            // Handle slot taken error
             if ($e->getMessage() === 'SLOT_TAKEN') {
                 return response()->json([
-                    'message' => 'Sorry! Ye slot already book ho gaya. Koi aur slot choose karo.',
+                    'message' => 'This time slot is already booked. Please choose a different time.',
                 ], 409); // 409 = Conflict
             }
 
-            // Koi aur error
+            // Handle general errors
             return response()->json([
-                'message' => 'Booking failed. Dobara try karo.',
+                'message' => 'Booking failed. Please try again later.',
             ], 500);
         }
     }
 
-    // Booking cancel karo
+    // Cancel an existing appointment
     public function cancel($id)
     {
         $appointment = Appointment::where(
@@ -142,28 +136,38 @@ class AppointmentController extends Controller
 
         if (! $appointment) {
             return response()->json([
-                'message' => 'Appointment not found',
+                'message' => 'Appointment not found.',
             ], 404);
         }
 
-        // Already completed hai toh cancel nahi hoga
+        // Cannot cancel an already completed appointment
         if ($appointment->status === 'completed') {
             return response()->json([
-                'message' => 'Completed appointment cancel nahi ho sakta.',
+                'message' => 'A completed appointment cannot be cancelled.',
             ], 400);
         }
 
-        // Already cancelled hai
+        // Prevent cancelling an already cancelled appointment
         if ($appointment->status === 'cancelled') {
             return response()->json([
-                'message' => 'Ye appointment pehle se cancelled hai.',
+                'message' => 'This appointment is already cancelled.',
             ], 400);
+        }
+
+        $appointmentDateTime = Carbon::parse(
+            Carbon::parse($appointment->appointment_date)->toDateString().' '.$appointment->start_time
+        );
+
+        if (Carbon::now()->diffInHours($appointmentDateTime, false) < 2) {
+            return response()->json([
+                'message' => 'Appointments cannot be cancelled within 2 hours of the scheduled time.',
+            ], 422);
         }
 
         $appointment->update(['status' => 'cancelled']);
 
         return response()->json([
-            'message' => 'Appointment cancelled successfully',
+            'message' => 'Appointment cancelled successfully.',
             'data' => $appointment,
         ]);
     }

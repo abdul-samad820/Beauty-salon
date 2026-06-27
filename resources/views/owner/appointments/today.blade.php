@@ -1,121 +1,224 @@
-@extends('owner.layouts.app')
-@section('title',"Today's Bookings")
-@section('page-title',"Today's Bookings")
-@section('page-sub', now()->format('l, d M Y'))
+@extends('layouts.owner')
+
+@section('title', "Today's Appointments")
+@section('page-title', "Today's Appointments")
+@section('page-sub', 'Daily Operations · ' . ($date ?? now()->format('d M Y')))
+@section('breadcrumb', 'Workspace / Bookings / Today')
+
 @section('topbar-actions')
-  <button class="btn-gold-sm" onclick="document.getElementById('bookModal').style.display='flex'">
-    <i class="bi bi-plus-lg"></i> Quick Book
-  </button>
+{{-- Sleek New Booking Button --}}
+<a href="{{ route('owner.appointments.create') }}" class="btn-lux-gold btn-sm" style="flex-shrink: 0; padding: 0.5rem 1rem;">
+    <i class="bi bi-plus-lg me-1"></i> <span class="d-none d-sm-inline">New Booking Entry</span>
+</a>
+@endsection
+
+@section('content')
+
+<div class="card-lux p-0 fade-up s1">
+    {{-- Refined Card Header --}}
+    <div class="p-4 border-bottom" style="border-color: rgba(255,255,255,0.05) !important; display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h3 class="serif" style="font-size: 1.25rem; color: var(--gold); margin-bottom: 0.2rem;">Today's Ledger</h3>
+            <p style="font-size: 0.65rem; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.05em; margin: 0;">
+                <i class="bi bi-clock me-1"></i> Real-time Schedule
+            </p>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-2); font-weight: 500; background: var(--bg-input); padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--border);">
+            Total: <span style="color: var(--gold);">{{ count($appointments ?? []) }}</span>
+        </div>
+    </div>
+
+    {{-- Premium Scroller Table --}}
+    <div class="lux-table-wrapper lux-scroller" style="max-height: 650px; overflow-y: auto;">
+        <table class="lux-table mb-0">
+            <thead style="position: sticky; top: 0; background: rgba(15, 15, 20, 0.95); backdrop-filter: blur(10px); z-index: 10;">
+                <tr>
+                    <th style="width: 130px; padding-left: 1.5rem;">Schedule Time</th>
+                    <th>Customer Identity</th>
+                    <th>Assigned Staff</th>
+                    <th>Treatment</th>
+                    <th>Status</th>
+                    <th class="text-end" style="padding-right: 1.5rem;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($appointments ?? [] as $booking)
+                <tr style="transition: background 0.2s ease;" onmouseover="this.style.background='rgba(255,255,255,0.015)'" onmouseout="this.style.background='transparent'">
+
+                    {{-- Time --}}
+                    <td style="padding-left: 1.5rem;">
+                        <div style="font-family: var(--ff-display); color: var(--gold); font-size: 1.05rem; font-weight: 600; letter-spacing: 0.02em;">
+                            {{ \Carbon\Carbon::parse($booking->start_time)->format('h:i A') }}
+                        </div>
+                    </td>
+
+                    {{-- Customer details with Avatar --}}
+                    <td>
+                        <div style="display: flex; align-items: center; gap: 0.8rem;">
+                            <div style="width: 34px; height: 34px; border-radius: 50%; background: var(--bg-input); border: 1px solid var(--border-2); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; color: var(--text-2);">
+                                {{ strtoupper(substr($booking->customer->name ?? 'W', 0, 1)) }}
+                            </div>
+                            <div>
+                                <div style="font-weight: 600; font-size: 0.85rem; color: var(--text);">{{ $booking->customer->name ?? 'Walk-in Client' }}</div>
+                                <div style="font-size: 0.65rem; color: var(--text-3); font-family: monospace; letter-spacing: 0.05em; margin-top: 2px;">
+                                    <i class="bi bi-telephone-fill" style="font-size: 0.55rem; opacity: 0.7;"></i> {{ $booking->customer->phone ?? 'No Contact' }}
+                                </div>
+                            </div>
+                        </div>
+                    </td>
+
+                    {{-- Staff --}}
+                    <td>
+                        <div style="display: inline-flex; align-items: center; gap: 0.5rem; color: var(--text-2); font-size: 0.8rem; background: rgba(255,255,255,0.03); padding: 0.3rem 0.6rem; border-radius: 6px;">
+                            <span style="height: 6px; width: 6px; border-radius: 50%; background: var(--purple); box-shadow: 0 0 6px var(--purple);"></span>
+                            <span style="font-weight: 500;">{{ $booking->staff->user->name ?? 'Unassigned' }}</span>
+                        </div>
+                    </td>
+
+                    {{-- Service --}}
+                    <td>
+                        <div style="font-weight: 600; font-size: 0.85rem; color: var(--text-2);">{{ $booking->service->name }}</div>
+                        <div style="font-size: 0.65rem; color: var(--text-3); margin-top: 2px;">
+                            <i class="bi bi-hourglass-split"></i> {{ $booking->service->duration_minutes }} Mins
+                        </div>
+                    </td>
+
+                    {{-- Status --}}
+                    <td>
+                        @php
+                        $statusClass = match(strtolower($booking->status)) {
+                        'completed' => 'badge-active',
+                        'confirmed' => 'badge-active',
+                        'checked_in' => 'badge-active',
+                        'cancelled' => 'badge-suspended',
+                        'no_show' => 'badge-suspended',
+                        default => 'badge-trial'
+                        };
+                        @endphp
+                        <span class="status-badge {{ $statusClass }}" style="font-size: 0.65rem; padding: 0.3rem 0.6rem;">
+                            {{ $booking->status === 'no_show' ? 'No Show' : ucfirst(str_replace('_', ' ', $booking->status)) }}
+                        </span>
+                    </td>
+
+                    {{-- Actions --}}
+                    <td class="text-end" style="padding-right: 1.5rem;">
+                        <div class="d-flex align-items-center justify-content-end gap-2">
+                            @if(!in_array(strtolower($booking->status), ['completed', 'cancelled', 'no_show']))
+                            @if(in_array($booking->status, ['pending', 'confirmed']))
+                            {{-- Check In Action --}}
+                            <form action="{{ route('owner.appointments.status', $booking->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                <input type="hidden" name="status" value="checked_in">
+                                <button type="submit" class="action-btn-pro action-success" title="Check In" data-no-spinner>
+
+                                    <i class="bi bi-box-arrow-in-right"></i>
+                                </button>
+                            </form>
+                            @endif
+
+                            @if($booking->status === 'checked_in')
+                            {{-- Complete Action --}}
+                            <form action="{{ route('owner.appointments.status', $booking->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                <input type="hidden" name="status" value="completed">
+                                <button type="submit" class="action-btn-pro action-success" title="Mark as Complete" data-no-spinner>
+
+                                    <i class="bi bi-check2"></i>
+                                </button>
+                            </form>
+                            @endif
+
+                            {{-- No Show Action --}}
+                            <form action="{{ route('owner.appointments.status', $booking->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Mark this appointment as a no-show?');">
+                                @csrf
+                                <input type="hidden" name="status" value="no_show">
+                                <button type="submit" class="action-btn-pro action-danger" title="Mark No Show" data-no-spinner>
+
+                                    <i class="bi bi-person-x"></i>
+                                </button>
+                            </form>
+
+                            {{-- Cancel Action --}}
+                            <form action="{{ route('owner.appointments.status', $booking->id) }}" method="POST" class="d-inline">
+                                @csrf
+                                <input type="hidden" name="status" value="cancelled">
+                                <button type="submit" class="action-btn-pro action-danger" title="Cancel Appointment" data-no-spinner>
+
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
+                            </form>
+                            @else
+                            <span style="font-size: 0.7rem; color: var(--text-3); font-style: italic; background: rgba(255,255,255,0.03); padding: 0.3rem 0.6rem; border-radius: 4px;">Ledger Closed</span>
+                            @endif
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="6" style="text-align: center; padding: 5rem 2rem;">
+                        <div style="width: 64px; height: 64px; background: rgba(255,255,255,0.02); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 1rem;">
+                            <i class="bi bi-calendar2-x" style="font-size: 1.8rem; color: var(--text-3); opacity: 0.6;"></i>
+                        </div>
+                        <h4 style="font-size: 1rem; color: var(--text); font-weight: 500; margin-bottom: 0.3rem;">No Bookings Scheduled</h4>
+                        <p style="font-size: 0.75rem; color: var(--text-3); max-width: 300px; margin: 0 auto; line-height: 1.5;">
+                            The schedule for today is currently empty. New walk-ins or reservations will appear here.
+                        </p>
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
+    </div>
+</div>
+
 @endsection
 
 @push('styles')
 <style>
-  .appt-block{background:var(--bg-card-2);border:1px solid var(--border-2);border-radius:10px;padding:.85rem 1rem;display:flex;align-items:center;gap:.85rem;transition:all .25s;position:relative;overflow:hidden;margin-bottom:.6rem}
-  .appt-block::before{content:'';position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:0 2px 2px 0}
-  .appt-block.confirmed::before{background:var(--gold)}
-  .appt-block.completed::before{background:var(--emerald)}
-  .appt-block.cancelled::before{background:var(--rose)}
-  .appt-block.pending::before{background:var(--amber)}
-  .appt-block:hover{border-color:var(--border-2);background:rgba(255,255,255,.02)}
-  .ab-time{font-family:var(--ff-display);font-size:1.05rem;color:var(--gold);min-width:54px;flex-shrink:0}
-  .ab-av{width:36px;height:36px;border-radius:50%;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;font-family:var(--ff-display);font-size:.9rem;color:var(--gold);flex-shrink:0}
-  .ab-name{font-size:.84rem;font-weight:500;color:var(--text)}
-  .ab-detail{font-size:.7rem;color:var(--text-3);margin-top:.1rem}
-  .ab-actions{display:flex;gap:.3rem;margin-left:auto;flex-shrink:0}
-  .aa-btn{width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:transparent;display:flex;align-items:center;justify-content:center;color:var(--text-3);cursor:pointer;transition:all .2s;font-size:.75rem}
-  .aa-btn:hover{border-color:var(--gold);color:var(--gold);background:var(--gold-dim)}
-  .aa-btn.danger:hover{border-color:var(--rose);color:var(--rose);background:var(--rose-dim)}
-  .time-slot-hdr{font-size:.6rem;font-weight:700;letter-spacing:.25em;text-transform:uppercase;color:var(--text-3);margin:1.2rem 0 .6rem;display:flex;align-items:center;gap:.7rem}
-  .time-slot-hdr::after{content:'';flex:1;height:1px;background:var(--border)}
-  .fl-group{margin-bottom:1rem}
-  .fl-group label{display:block;font-size:.65rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--text-3);margin-bottom:.4rem}
-  .fl-group input,.fl-group select{width:100%;background:var(--bg-input);border:1px solid var(--border-2);border-radius:8px;color:var(--text);font-family:var(--ff-body);font-size:.82rem;padding:.7rem 1rem;outline:none}
-  .fl-group input:focus,.fl-group select:focus{border-color:var(--gold)}
-  .fl-group select option{background:var(--bg-card)}
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:500;align-items:center;justify-content:center;padding:1rem}
-  .modal-box{background:var(--bg-card);border:1px solid var(--border-2);border-radius:16px;padding:2rem;width:100%;max-width:480px;max-height:90vh;overflow-y:auto}
+    /* Premium Scroller */
+    .lux-scroller::-webkit-scrollbar {
+        width: 5px;
+        height: 5px;
+    }
+
+    .lux-scroller::-webkit-scrollbar-thumb {
+        background: rgba(201, 169, 110, 0.2);
+        border-radius: 10px;
+    }
+
+    .lux-scroller::-webkit-scrollbar-thumb:hover {
+        background: var(--gold);
+    }
+
+    /* Action Buttons Pro Design */
+    .action-btn-pro {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        border: 1px solid transparent;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.9rem;
+        background: var(--bg-input);
+        color: var(--text-3);
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    .action-success:hover {
+        background: var(--emerald-dim);
+        border-color: rgba(16, 185, 129, 0.3);
+        color: var(--emerald);
+        transform: translateY(-2px);
+    }
+
+    .action-danger:hover {
+        background: var(--rose-dim);
+        border-color: rgba(244, 63, 94, 0.3);
+        color: var(--rose);
+        transform: translateY(-2px);
+    }
+
 </style>
 @endpush
-
-@section('content')
-{{-- Stats row --}}
-<div class="row g-3 mb-3">
-  <div class="col-6 col-md-3 fade-up s1"><div class="card-lux kpi-pad gold-border"><div class="kpi-label"><span class="live-dot"></span> Total Today</div><div class="kpi-value" style="color:var(--gold)">{{ $stats['total'] }}</div></div></div>
-  <div class="col-6 col-md-3 fade-up s2"><div class="card-lux kpi-pad" style="border-top:2px solid var(--amber)"><div class="kpi-label">Pending</div><div class="kpi-value" style="color:var(--amber)">{{ $stats['pending'] }}</div></div></div>
-  <div class="col-6 col-md-3 fade-up s3"><div class="card-lux kpi-pad" style="border-top:2px solid var(--emerald)"><div class="kpi-label">Completed</div><div class="kpi-value" style="color:var(--emerald)">{{ $stats['completed'] }}</div></div></div>
-  <div class="col-6 col-md-3 fade-up s4"><div class="card-lux kpi-pad" style="border-top:2px solid var(--rose)"><div class="kpi-label">Cancelled</div><div class="kpi-value" style="color:var(--rose)">{{ $stats['cancelled'] }}</div></div></div>
-</div>
-
-<div class="card-lux p-4 fade-up s2">
-  @if($appointments->isEmpty())
-    <div style="text-align:center;padding:3rem;color:var(--text-3)">
-      <i class="bi bi-calendar-x" style="font-size:2.5rem;display:block;margin-bottom:1rem"></i>
-      Aaj koi booking nahi hai
-    </div>
-  @else
-    @php
-      $grouped = $appointments->groupBy(fn($a) => \Carbon\Carbon::parse($a->start_time)->format('A') === 'AM' ? 'Morning' : (\Carbon\Carbon::parse($a->start_time)->hour < 17 ? 'Afternoon' : 'Evening'));
-    @endphp
-    @foreach($grouped as $period => $appts)
-      <div class="time-slot-hdr">{{ $period }} · {{ $appts->count() }} bookings</div>
-      @foreach($appts as $a)
-        <div class="appt-block {{ $a->status }}">
-          <div class="ab-time">{{ \Carbon\Carbon::parse($a->start_time)->format('h:i') }}<div style="font-size:.6rem;color:var(--text-3)">{{ \Carbon\Carbon::parse($a->start_time)->format('A') }}</div></div>
-          <div class="ab-av">{{ strtoupper(substr($a->customer?->name ?? 'W', 0, 2)) }}</div>
-          <div style="flex:1;min-width:0">
-            <div class="ab-name">{{ $a->customer?->name ?? 'Walk-in' }}</div>
-            <div class="ab-detail">{{ $a->service?->name }} · {{ $a->staff?->user?->name }} · {{ $a->service?->duration_minutes }}min</div>
-          </div>
-          <span class="lux-badge {{ match($a->status){ 'completed'=>'lb-green','cancelled'=>'lb-red','confirmed'=>'lb-gold',default=>'lb-amber' } }}" style="flex-shrink:0">{{ ucfirst($a->status) }}</span>
-          <div class="ab-actions">
-            @if(!in_array($a->status, ['completed','cancelled']))
-              <form method="POST" action="{{ route('owner.appointments.status', $a->id) }}" style="display:contents">
-                @csrf @method('POST')
-                <input type="hidden" name="status" value="completed">
-                <button type="submit" class="aa-btn" title="Mark Done"><i class="bi bi-check-lg"></i></button>
-              </form>
-              <form method="POST" action="{{ route('owner.appointments.status', $a->id) }}" style="display:contents">
-                @csrf @method('POST')
-                <input type="hidden" name="status" value="cancelled">
-                <button type="submit" class="aa-btn danger" title="Cancel" onclick="return confirm('Cancel karein?')"><i class="bi bi-x-lg"></i></button>
-              </form>
-            @endif
-          </div>
-        </div>
-      @endforeach
-    @endforeach
-  @endif
-</div>
-
-{{-- Quick Book Modal --}}
-<div class="modal-overlay" id="bookModal" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal-box">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
-      <div style="font-family:var(--ff-display);font-size:1.3rem;color:var(--text)">Quick Book</div>
-      <button onclick="document.getElementById('bookModal').style.display='none'" style="background:none;border:none;color:var(--text-3);font-size:1.2rem;cursor:pointer"><i class="bi bi-x-lg"></i></button>
-    </div>
-    <form method="POST" action="{{ route('owner.appointments.store') }}">
-      @csrf
-      <div class="fl-group">
-        <label>Customer *</label>
-        <select name="customer_id" required>
-          <option value="">Select Customer</option>
-          @foreach(\App\Models\User::where('tenant_id',auth()->user()->tenant_id)->role('customer')->get() as $c)
-            <option value="{{ $c->id }}">{{ $c->name }}</option>
-          @endforeach
-        </select>
-      </div>
-      <div class="row g-2">
-        <div class="col-6"><div class="fl-group"><label>Service *</label><select name="service_id" required><option value="">Select</option>@foreach(\App\Models\Service::where('tenant_id',auth()->user()->tenant_id)->where('is_active',true)->get() as $s)<option value="{{ $s->id }}">{{ $s->name }}</option>@endforeach</select></div></div>
-        <div class="col-6"><div class="fl-group"><label>Staff *</label><select name="staff_id" required><option value="">Select</option>@foreach(\App\Models\Staff::with('user')->where('tenant_id',auth()->user()->tenant_id)->where('is_available',true)->get() as $s)<option value="{{ $s->id }}">{{ $s->user?->name }}</option>@endforeach</select></div></div>
-        <div class="col-6"><div class="fl-group"><label>Date *</label><input type="date" name="appointment_date" value="{{ date('Y-m-d') }}" required /></div></div>
-        <div class="col-6"><div class="fl-group"><label>Time *</label><input type="time" name="start_time" required /></div></div>
-      </div>
-      <div style="display:flex;gap:.8rem;margin-top:.8rem">
-        <button type="button" onclick="document.getElementById('bookModal').style.display='none'" class="btn-ghost-sm" style="flex:1;justify-content:center">Cancel</button>
-        <button type="submit" class="btn-gold-sm" style="flex:2;justify-content:center"><i class="bi bi-calendar-check"></i> Book Now</button>
-      </div>
-    </form>
-  </div>
-</div>
-@endsection

@@ -1,188 +1,342 @@
-@extends('owner.layouts.app')
-@section('title','Inventory')
-@section('page-title','Inventory')
-@section('page-sub', $stats['total'] . ' products · ' . $stats['low_stock'] . ' low stock alerts')
-@section('topbar-actions')
-  <button class="btn-gold-sm" onclick="document.getElementById('addModal').style.display='flex'">
-    <i class="bi bi-plus-lg"></i> Add Product
-  </button>
-@endsection
+@extends('layouts.owner')
 
+@section('title', 'Inventory Register')
+@section('page-title', 'Stock Ledger Matrix')
+@section('breadcrumb', 'Manage / Inventory')
 @push('styles')
 <style>
-  .prod-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;padding:1.4rem;transition:all var(--transition);position:relative;overflow:hidden}
-  .prod-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent)}
-  .prod-card:hover{border-color:rgba(201,169,110,.2);box-shadow:0 10px 40px rgba(0,0,0,.4);transform:translateY(-3px)}
-  .prod-card.low-stock{border-color:rgba(244,63,94,.2)}
-  .prod-card.low-stock:hover{border-color:var(--rose)}
-  .stock-bar-wrap{height:5px;background:rgba(255,255,255,.06);border-radius:3px;overflow:hidden;margin-bottom:.3rem}
-  .stock-bar{height:100%;border-radius:3px;transition:width 1.2s var(--ease)}
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:500;align-items:center;justify-content:center;padding:1rem}
-  .modal-box{background:var(--bg-card);border:1px solid var(--border-2);border-radius:16px;padding:2rem;width:100%;max-width:460px;max-height:90vh;overflow-y:auto}
-  .fl-group{margin-bottom:1rem}
-  .fl-group label{display:block;font-size:.65rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--text-3);margin-bottom:.4rem}
-  .fl-group input,.fl-group select{width:100%;background:var(--bg-input);border:1px solid var(--border-2);border-radius:8px;color:var(--text);font-family:var(--ff-body);font-size:.82rem;padding:.7rem 1rem;outline:none;transition:border-color .25s}
-  .fl-group input:focus,.fl-group select:focus{border-color:var(--gold)}
+    /* Premium Gold Scroller */
+    .lux-scroller::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .lux-scroller::-webkit-scrollbar-thumb {
+        background: rgba(201, 169, 110, 0.3);
+        border-radius: 10px;
+    }
+
+    .lux-scroller::-webkit-scrollbar-thumb:hover {
+        background: var(--gold);
+    }
+
+    /* Table Header Sticky fix */
+    .lux-table thead th {
+        position: sticky;
+        top: 0;
+        background: var(--bg-card);
+        z-index: 10;
+        border-bottom: 1px solid var(--border);
+    }
+
 </style>
 @endpush
-
-@push('head-scripts')
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-@endpush
+@section('topbar-actions')
+<a href="{{ route('owner.inventory.valuation') }}" class="btn-sm" style="padding: 0.5rem 1rem; border-radius: var(--r-md); background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-2); text-decoration: none; margin-right: 0.5rem;">
+    <i class="bi bi-clipboard-data me-1"></i> Valuation Report
+</a>
+<button class="btn-lux-gold btn-sm" onclick="openAddProductModal()">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i> Add New Product Node
+</button>
+@endsection
 
 @section('content')
-<div class="row g-3 mb-3">
-  <div class="col-6 col-md-3 fade-up s1"><div class="card-lux kpi-pad gold-border"><div class="kpi-label">Total Products</div><div class="kpi-value" style="color:var(--gold)">{{ $stats['total'] }}</div></div></div>
-  <div class="col-6 col-md-3 fade-up s2"><div class="card-lux kpi-pad" style="border-top:2px solid var(--rose)"><div class="kpi-label">Low Stock</div><div class="kpi-value" style="color:var(--rose)">{{ $stats['low_stock'] }}</div></div></div>
-  <div class="col-6 col-md-3 fade-up s3"><div class="card-lux kpi-pad" style="border-top:2px solid var(--emerald)"><div class="kpi-label">Total Value</div><div class="kpi-value" style="color:var(--emerald)">₹{{ number_format($stats['total_value']) }}</div></div></div>
-  <div class="col-6 col-md-3 fade-up s4"><div class="card-lux kpi-pad" style="border-top:2px solid var(--amber)"><div class="kpi-label">Transactions</div><div class="kpi-value" style="color:var(--amber)">{{ $recentTransactions->count() }}</div></div></div>
+
+<!-- System Metric Layout Row Component -->
+<div class="mb-4 fade-up s1">
+    <x-cards.stat-row :stats="[
+        ['label' => 'Total SKU Products',          'value' => $stats['total'],                               'color' => 'var(--gold)'],
+        ['label' => 'Low Stock Warning Profiles',  'value' => $stats['low_stock'],                           'color' => 'var(--rose)'],
+        ['label' => 'Gross Ledger Valuation',      'value' => '₹' . number_format($stats['total_value'], 0), 'color' => 'var(--emerald)'],
+    ]" />
 </div>
 
-{{-- Low stock alert banner --}}
+<!-- Low Stock Critical Alert -->
 @if($stats['low_stock'] > 0)
-<div style="background:var(--rose-dim);border:1px solid rgba(244,63,94,.2);border-radius:10px;padding:.9rem 1.2rem;margin-bottom:1.2rem;display:flex;align-items:center;gap:.7rem;font-size:.82rem;color:var(--rose)" class="fade-up s2">
-  <i class="bi bi-exclamation-triangle-fill"></i>
-  <strong>{{ $stats['low_stock'] }} products</strong> ka stock low hai — replenishment needed.
+<div class="card-lux mb-4 fade-up s1" style="display: flex; align-items: center; gap: 1rem; border-left: 3px solid var(--rose); background: rgba(244, 63, 94, 0.05); padding: 1rem 1.5rem;" role="alert">
+    <div style="width: 32px; height: 32px; border-radius: 8px; background: var(--rose-dim); color: var(--rose); display: flex; align-items: center; justify-content: center; flex-shrink: 0;">
+        <i class="bi bi-exclamation-triangle-fill"></i>
+    </div>
+    <div style="font-size: 0.8rem; color: var(--text);">
+        <span style="font-weight: 600; color: var(--rose);">{{ $stats['low_stock'] }} critical products</span> are running below safe threshold parameters. Reorder stock levels to stabilize parlour treatments workflows.
+    </div>
 </div>
 @endif
 
-<div class="row g-3 fade-up s3">
-  @forelse($products as $prod)
-  @php
-    $pct = $prod->low_stock_threshold > 0 ? min(100, round(($prod->quantity / ($prod->low_stock_threshold * 5)) * 100)) : 100;
-    $barColor = $prod->isLowStock() ? 'var(--rose)' : ($pct < 50 ? 'var(--amber)' : 'var(--emerald)');
-  @endphp
-  <div class="col-sm-6 col-lg-4">
-    <div class="prod-card {{ $prod->isLowStock() ? 'low-stock' : '' }}">
-      <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:.8rem">
-        <div>
-          @if($prod->category)
-            <div style="font-size:.58rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--text-3);margin-bottom:.3rem">{{ $prod->category }}</div>
-          @endif
-          <div style="font-size:.92rem;font-weight:500;color:var(--text)">{{ $prod->name }}</div>
-        </div>
-        @if($prod->isLowStock())
-          <span class="lux-badge lb-red"><i class="bi bi-exclamation-triangle-fill"></i> Low</span>
+<!-- Tab Navigation Layout -->
+<div class="mb-4 fade-up s2" style="display: flex; gap: 1.5rem; border-bottom: 1px solid var(--border);" role="tablist">
+    @foreach(['all' => 'All Material Stock', 'low' => 'Deficit Alert Registers'] as $tab => $label)
+    <a href="{{ route('owner.inventory.index') }}?tab={{ $tab }}" style="padding-bottom: 0.8rem; font-size: 0.8rem; font-weight: 600; text-decoration: none; color: {{ request('tab','all') === $tab ? 'var(--gold)' : 'var(--text-3)' }}; border-bottom: 2px solid {{ request('tab','all') === $tab ? 'var(--gold)' : 'transparent' }}; transition: all 0.3s; display: flex; align-items: center; gap: 0.5rem;" role="tab" aria-selected="{{ request('tab','all') === $tab ? 'true' : 'false' }}">
+        <span>{{ $label }}</span>
+        @if($tab === 'low' && $stats['low_stock'] > 0)
+        <span style="background: var(--rose-dim); color: var(--rose); font-size: 0.6rem; padding: 0.1rem 0.4rem; border-radius: 10px;">
+            {{ $stats['low_stock'] }}
+        </span>
         @endif
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:.6rem">
-        <div><div style="font-family:var(--ff-display);font-size:1.4rem;color:{{ $prod->isLowStock() ? 'var(--rose)' : 'var(--text)' }}">{{ $prod->quantity }}</div><div style="font-size:.62rem;color:var(--text-3)">in stock</div></div>
-        <div style="text-align:right"><div style="font-size:.82rem;color:var(--gold)">₹{{ number_format($prod->price) }}</div><div style="font-size:.62rem;color:var(--text-3)">per unit</div></div>
-      </div>
-      <div class="stock-bar-wrap"><div class="stock-bar" style="width:{{ $pct }}%;background:{{ $barColor }}"></div></div>
-      <div style="font-size:.62rem;color:var(--text-3);margin-bottom:1rem">Min: {{ $prod->low_stock_threshold }} units</div>
-      <div style="display:flex;gap:.4rem">
-        <button class="btn-ghost-sm" style="flex:1;justify-content:center;border-color:var(--emerald);color:var(--emerald)" onclick="openStockIn({{ $prod->id }},'{{ addslashes($prod->name) }}')">
-          <i class="bi bi-plus-lg"></i> Stock In
-        </button>
-        <button class="btn-ghost-sm" style="flex:1;justify-content:center" onclick="openStockOut({{ $prod->id }},'{{ addslashes($prod->name) }}',{{ $prod->quantity }})">
-          <i class="bi bi-dash-lg"></i> Stock Out
-        </button>
-      </div>
+    </a>
+    @endforeach
+</div>
+
+<!-- Data Table Mesh -->
+<div class="card-lux fade-up s3">
+    <div class="lux-table-wrapper lux-scroller" style="max-height: 500px; overflow-y: auto;">
+        <table class="lux-table">
+            <thead>
+                <tr>
+                    <th>Product Variant Ledger</th>
+                    <th>Category Tag</th>
+                    <th>Base Valuation Rate</th>
+                    <th>Ledger Active Stock</th>
+                    <th>Safe Threshold Limit</th>
+                    <th>Status Info</th>
+                    <th class="text-end" style="width: 140px;">Actions Terminal</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($products as $p)
+                @php
+                $isLow = $p->quantity <= $p->low_stock_threshold;
+                    $isCritical = $p->quantity <= max(1, $p->low_stock_threshold / 2);
+                        @endphp
+                        <tr>
+                            <td>
+                                <div style="font-weight: 500; color: var(--text);">{{ $p->name }}</div>
+                            </td>
+                            <td>
+                                <span class="plan-badge" style="background: rgba(255,255,255,0.05); color: var(--text-2);">
+                                    {{ ucfirst($p->category ?? 'General SKU') }}
+                                </span>
+                            </td>
+                            <td class="serif" style="font-size: 1.1rem; color: var(--text);">
+                                ₹{{ number_format($p->price, 0) }}
+                            </td>
+                            <td>
+                                <div style="display: inline-flex; align-items: center; gap: 0.4rem; font-weight: 600; font-size: 0.85rem; color: @if($isCritical) var(--rose) @elseif($isLow) var(--amber) @else var(--emerald) @endif;">
+                                    @if($isLow) <i class="bi bi-exclamation-triangle-fill"></i> @endif
+                                    {{ $p->quantity }} units
+                                </div>
+                            </td>
+                            <td class="faint" style="font-family: monospace;">
+                                {{ $p->low_stock_threshold }} units
+                            </td>
+                            <td>
+                                <span class="status-badge {{ $p->is_active ? 'badge-active' : 'badge-suspended' }}">
+                                    @if($p->is_active) <span class="live-dot" style="margin-right: 0.2rem;"></span> @endif
+                                    {{ $p->is_active ? 'Active' : 'Inactive' }}
+                                </span>
+                            </td>
+                            <td class="text-end">
+                                <div class="d-flex align-items-center justify-content-end gap-1">
+                                    <button class="btn-icon-action" style="color: var(--emerald);" title="Stock In - Add Entry" onclick="handleStockUpdateModalOpen('in', {{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->quantity }})">
+                                        <i class="bi bi-plus-circle"></i>
+                                    </button>
+                                    <button class="btn-icon-action" style="color: var(--rose);" title="Stock Out - Adjust Deduct" onclick="handleStockUpdateModalOpen('out', {{ $p->id }}, '{{ addslashes($p->name) }}', {{ $p->quantity }})">
+                                        <i class="bi bi-dash-circle"></i>
+                                    </button>
+                                    <button class="btn-icon-action" title="Edit Variant Profile" data-prod-id="{{ $p->id }}" data-prod-name="{{ $p->name }}" data-prod-price="{{ $p->price }}" data-prod-cost-price="{{ $p->cost_price }}" data-prod-threshold="{{ $p->low_stock_threshold }}" data-prod-category="{{ $p->category ?? '' }}" data-prod-image="{{ $p->image ?? '' }}" onclick="handleEditProductModalTrigger(this)">
+                                        <i class="bi bi-pencil"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 4rem 2rem;">
+                                <i class="bi bi-box-seam faint d-block mb-3" style="font-size: 2rem;"></i>
+                                <h4 class="faint" style="font-size: var(--text-sm);">No active inventory records found</h4>
+                                <p class="muted" style="font-size: var(--text-xs); max-width: 400px; margin: 0 auto;">
+                                    The inventory registry is currently empty. Please add items to begin tracking your service material consumption.
+                                </p>
+                            </td>
+                        </tr>
+                        @endforelse
+            </tbody>
+        </table>
     </div>
-  </div>
-  @empty
-  <div class="col-12" style="text-align:center;padding:3rem;color:var(--text-3)">
-    <i class="bi bi-box-seam" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>
-    Koi product nahi. Pehla product add karein!
-  </div>
-  @endforelse
-</div>
 
-{{-- Recent Transactions --}}
-@if($recentTransactions->count() > 0)
-<div class="card-lux p-4 mt-3 fade-up">
-  <div class="sec-hdr"><div class="sec-title">Recent Transactions</div><div class="sec-sub">Last 10 stock movements</div></div>
-  <table class="lux-table">
-    <thead><tr><th>Product</th><th>Type</th><th>Qty</th><th>Reason</th><th>Date</th></tr></thead>
-    <tbody>
-      @foreach($recentTransactions as $tx)
-      <tr>
-        <td style="color:var(--text)">{{ $tx->product?->name }}</td>
-        <td><span class="lux-badge {{ $tx->type==='in' ? 'lb-green' : 'lb-red' }}">{{ strtoupper($tx->type) }}</span></td>
-        <td style="{{ $tx->type==='in' ? 'color:var(--emerald)' : 'color:var(--rose)' }}">{{ $tx->type==='in' ? '+' : '-' }}{{ $tx->quantity }}</td>
-        <td>{{ $tx->reason }}</td>
-        <td>{{ $tx->created_at->format('d M, h:i A') }}</td>
-      </tr>
-      @endforeach
-    </tbody>
-  </table>
-</div>
-@endif
-
-{{-- Add Product Modal --}}
-<div class="modal-overlay" id="addModal" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal-box">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
-      <div style="font-family:var(--ff-display);font-size:1.3rem;color:var(--text)">Add New Product</div>
-      <button onclick="document.getElementById('addModal').style.display='none'" style="background:none;border:none;color:var(--text-3);font-size:1.2rem;cursor:pointer"><i class="bi bi-x-lg"></i></button>
+    @if($products->hasPages())
+    <div class="lux-pagination-wrapper border-top" style="border-color: var(--border) !important; padding: 1rem 1.5rem;">
+        <x-tables.pagination :paginator="$products" />
     </div>
-    <form method="POST" action="{{ route('owner.inventory.store') }}">
-      @csrf
-      <div class="fl-group"><label>Product Name *</label><input type="text" name="name" required /></div>
-      <div class="row g-2">
-        <div class="col-6"><div class="fl-group"><label>Category</label><input type="text" name="category" placeholder="Hair Care, Skin…" /></div></div>
-        <div class="col-6"><div class="fl-group"><label>Price (₹) *</label><input type="number" name="price" min="0" step="10" required /></div></div>
-        <div class="col-6"><div class="fl-group"><label>Initial Qty *</label><input type="number" name="quantity" min="0" required /></div></div>
-        <div class="col-6"><div class="fl-group"><label>Low Stock Alert At</label><input type="number" name="low_stock_threshold" min="1" value="5" /></div></div>
-      </div>
-      <div style="display:flex;gap:.8rem;margin-top:.5rem">
-        <button type="button" onclick="document.getElementById('addModal').style.display='none'" class="btn-ghost-sm" style="flex:1;justify-content:center">Cancel</button>
-        <button type="submit" class="btn-gold-sm" style="flex:2;justify-content:center"><i class="bi bi-check-lg"></i> Add Product</button>
-      </div>
-    </form>
-  </div>
+    @endif
 </div>
 
-{{-- Stock In Modal --}}
-<div class="modal-overlay" id="stockInModal" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal-box" style="max-width:380px">
-    <div style="font-family:var(--ff-display);font-size:1.3rem;color:var(--emerald);margin-bottom:.3rem">Stock In</div>
-    <div id="stockInProductName" style="font-size:.75rem;color:var(--text-3);margin-bottom:1.2rem"></div>
-    <form method="POST" action="{{ route('owner.inventory.stock-in') }}">
-      @csrf
-      <input type="hidden" name="product_id" id="stockInId" />
-      <div class="fl-group"><label>Quantity *</label><input type="number" name="quantity" min="1" required /></div>
-      <div class="fl-group"><label>Reason</label><input type="text" name="reason" placeholder="Purchase, Return…" /></div>
-      <div style="display:flex;gap:.8rem;margin-top:.5rem">
-        <button type="button" onclick="document.getElementById('stockInModal').style.display='none'" class="btn-ghost-sm" style="flex:1;justify-content:center">Cancel</button>
-        <button type="submit" class="btn-gold-sm" style="flex:2;justify-content:center;background:var(--emerald);color:white"><i class="bi bi-plus-lg"></i> Add Stock</button>
-      </div>
-    </form>
-  </div>
-</div>
+<!-- Modal 1: Add/Edit Product -->
+<x-cards.modal id="addProductModal" title="Add Product SKU Node">
+    <div class="lux-scroller" style="max-height: 70vh; overflow-y: auto; padding-right: 10px;">
+        <form method="POST" id="productForm" action="{{ route('owner.inventory.store') }}" enctype="multipart/form-data">
+            @csrf
+            <span id="productMethod"></span>
 
-{{-- Stock Out Modal --}}
-<div class="modal-overlay" id="stockOutModal" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal-box" style="max-width:380px">
-    <div style="font-family:var(--ff-display);font-size:1.3rem;color:var(--rose);margin-bottom:.3rem">Stock Out</div>
-    <div id="stockOutProductName" style="font-size:.75rem;color:var(--text-3);margin-bottom:1.2rem"></div>
-    <form method="POST" action="{{ route('owner.inventory.stock-out') }}">
-      @csrf
-      <input type="hidden" name="product_id" id="stockOutId" />
-      <div class="fl-group"><label>Quantity *</label><input type="number" name="quantity" min="1" id="stockOutQty" required /></div>
-      <div class="fl-group"><label>Reason</label><input type="text" name="reason" placeholder="Service use, Wastage…" /></div>
-      <div style="display:flex;gap:.8rem;margin-top:.5rem">
-        <button type="button" onclick="document.getElementById('stockOutModal').style.display='none'" class="btn-ghost-sm" style="flex:1;justify-content:center">Cancel</button>
-        <button type="submit" class="btn-gold-sm" style="flex:2;justify-content:center;background:var(--rose);color:white"><i class="bi bi-dash-lg"></i> Use Stock</button>
-      </div>
+            <div class="row g-3">
+                <div class="col-12">
+                    <x-forms.input name="name" id="name" label="Product Registry Variant Name *" :required="true" />
+                </div>
+                <div class="col-12">
+                    <label class="lux-label">Product Image</label>
+                    <input type="file" name="image" id="productImage" accept="image/*" class="lux-input" style="padding:0.5rem;" />
+                    <div id="currentImageWrap" style="display:none;margin-top:0.5rem;">
+                        <img id="currentImage" src="" style="height:60px;border-radius:6px;object-fit:cover;" />
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <label class="lux-label" for="category">Category Module</label>
+                    <div style="position: relative;">
+                        <select name="category" id="category" class="lux-input" style="color-scheme: dark; padding-right: 2.5rem; background: var(--bg-input); color: var(--text); cursor: pointer;">
+
+                            <option value="" style="background: var(--bg-card); color: var(--text-3);">Choose Group...</option>
+                            @foreach(['hair'=>'Hair','skin'=>'Skin','nail'=>'Nail','tools'=>'Tools','other'=>'Other'] as $val => $lbl)
+                            <option value="{{ $val }}" style="background: var(--bg-card); color: var(--text);">{{ $lbl }}</option>
+                            @endforeach
+                        </select>
+                        <div style="position: absolute; right: 1rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-3);">
+                            <i class="bi bi-chevron-down" style="font-size: 0.8rem;"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <x-forms.input name="price" id="price" label="Selling Price (₹) *" type="number" min="0" step="10" />
+                </div>
+
+                <div class="col-12 col-md-6">
+                    <x-forms.input name="cost_price" id="cost_price" label="Purchase Cost Rate (₹)" type="number" min="0" step="10" />
+                </div>
+
+                <div id="quantity_wrapper" class="col-12 col-md-6">
+                    <x-forms.input name="quantity" id="quantity" label="Initial Stock Units *" type="number" min="0" />
+                </div>
+
+                <div id="threshold_wrapper" class="col-12 col-md-6">
+                    <x-forms.input name="low_stock_threshold" id="low_stock_threshold" label="Safe Warning Threshold *" type="number" min="1" />
+                </div>
+            </div>
+
+            <div style="margin-top: 1.5rem; display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                <button type="button" onclick="LuxModal.close('addProductModal')" class="btn-lux-ghost btn-sm border-0">Cancel Operations</button>
+                <button type="submit" class="btn-lux-gold btn-sm">Confirm Save Product</button>
+            </div>
+        </form>
+    </div>
+</x-cards.modal>
+
+<!-- Modal 2: Adjust Stock -->
+<x-cards.modal id="stockModal" title="Adjust Stock Inventory Ledger">
+    <form method="POST" id="stockForm" action="">
+        @csrf
+        <input type="hidden" name="product_id" id="stockProductId" />
+
+        <div style="margin-bottom: 1rem; border-radius: var(--r-md); border: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.02); padding: 1rem;">
+            <div id="stockProductName" style="font-size: 0.85rem; font-weight: 600; color: var(--text);"></div>
+            <div id="stockCurrentQty" style="font-size: 0.7rem; color: var(--text-3); margin-top: 0.2rem;"></div>
+        </div>
+
+        <div class="row g-3">
+            <div class="col-12">
+                <x-forms.input name="quantity" label="Adjustment Value Count Units *" type="number" min="1" :required="true" />
+            </div>
+            <div class="col-12">
+                <x-forms.input name="reason" label="Ledger Adjustment Cause Note" placeholder="e.g. Salon periodic re-stock allocation logs" />
+            </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+            <button type="button" onclick="LuxModal.close('stockModal')" class="btn-lux-ghost btn-sm border-0">Cancel Entry</button>
+            <button type="submit" id="stockSubmitBtn" class="btn-lux-gold btn-sm">Apply Ledger Log</button>
+        </div>
     </form>
-  </div>
-</div>
+</x-cards.modal>
+
 @endsection
 
 @push('scripts')
 <script>
-function openStockIn(id, name) {
-  document.getElementById('stockInId').value = id;
-  document.getElementById('stockInProductName').textContent = name;
-  document.getElementById('stockInModal').style.display = 'flex';
-}
-function openStockOut(id, name, qty) {
-  document.getElementById('stockOutId').value = id;
-  document.getElementById('stockOutProductName').textContent = name + ' · ' + qty + ' in stock';
-  document.getElementById('stockOutQty').max = qty;
-  document.getElementById('stockOutModal').style.display = 'flex';
-}
+    const INVENTORY_PRODUCT_STORE_URL = "{{ route('owner.inventory.store') }}";
+
+    function openAddProductModal() {
+        const form = document.getElementById('productForm');
+        form.reset();
+        form.action = INVENTORY_PRODUCT_STORE_URL;
+        document.getElementById('productMethod').innerHTML = '';
+
+        const qtyWrapper = document.getElementById('quantity_wrapper');
+        if (qtyWrapper) {
+            qtyWrapper.style.display = 'block';
+            const qtyInput = document.getElementById('quantity');
+            if (qtyInput) qtyInput.required = true;
+        }
+
+        const threshWrapper = document.getElementById('threshold_wrapper');
+        if (threshWrapper) {
+            threshWrapper.className = "col-12 col-md-6";
+        }
+
+        document.querySelector('#addProductModal .lux-modal-title').textContent = 'Add Product SKU Node';
+        LuxModal.open('addProductModal');
+    }
+
+    function handleEditProductModalTrigger(buttonElement) {
+        const dataset = buttonElement.dataset;
+        const form = document.getElementById('productForm');
+
+        document.querySelector('#addProductModal .lux-modal-title').textContent = 'Edit Product SKU Configuration';
+        form.action = `{{ url('owner/products') }}/${dataset.prodId}`;
+        document.getElementById('productMethod').innerHTML = '<input type="hidden" name="_method" value="PUT">';
+
+        document.getElementById('name').value = dataset.prodName;
+        document.getElementById('price').value = dataset.prodPrice;
+        document.getElementById('cost_price').value = dataset.prodCostPrice;
+        document.getElementById('low_stock_threshold').value = dataset.prodThreshold;
+        document.getElementById('category').value = dataset.prodCategory;
+
+        // Image preview
+        const imgWrap = document.getElementById('currentImageWrap');
+        const imgEl = document.getElementById('currentImage');
+        if (dataset.prodImage) {
+            imgEl.src = '/storage/' + dataset.prodImage;
+            imgWrap.style.display = 'block';
+        } else {
+            imgWrap.style.display = 'none';
+        }
+
+        const qtyWrapper = document.getElementById('quantity_wrapper');
+        if (qtyWrapper) {
+            qtyWrapper.style.display = 'none';
+            const qtyInput = document.getElementById('quantity');
+            if (qtyInput) qtyInput.required = false;
+        }
+
+        const threshWrapper = document.getElementById('threshold_wrapper');
+        if (threshWrapper) {
+            threshWrapper.className = "col-12";
+        }
+
+        LuxModal.open('addProductModal');
+    }
+
+    function handleStockUpdateModalOpen(type, id, name, currentQty) {
+        const modalTitle = document.querySelector('#stockModal .lux-modal-title');
+        const submitBtn = document.getElementById('stockSubmitBtn');
+
+        modalTitle.textContent = type === 'in' ? 'Stock In — Add Inventory Payout' : 'Stock Out — Deduct Waste Shortage';
+        document.getElementById('stockForm').action = `/owner/inventory/stock-${type}`;
+        document.getElementById('stockProductId').value = id;
+        document.getElementById('stockProductName').textContent = name;
+        document.getElementById('stockCurrentQty').textContent = `Current registered volume levels: ${currentQty} units`;
+
+        if (type === 'out') {
+            submitBtn.style.background = "var(--rose)";
+            submitBtn.style.color = "white";
+            submitBtn.style.border = "none";
+        } else {
+            submitBtn.style.background = "var(--emerald)";
+            submitBtn.style.color = "white";
+            submitBtn.style.border = "none";
+        }
+
+        LuxModal.open('stockModal');
+    }
+
 </script>
 @endpush

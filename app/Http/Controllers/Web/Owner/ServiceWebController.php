@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Web\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Models\Plan;
 use App\Models\Service;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -25,12 +26,17 @@ class ServiceWebController extends Controller
             $query->where('is_active', $request->status === 'active');
         }
 
-        $services = $query->orderBy('name')->get();
+        $services = $query->orderBy('name')->paginate(15);
+
+        $counts = Service::where('tenant_id', $tenant->id)
+                   ->selectRaw('is_active, COUNT(*) as count')
+                   ->groupBy('is_active')
+                   ->pluck('count', 'is_active');
 
         $stats = [
-            'total' => Service::where('tenant_id', $tenant->id)->count(),
-            'active' => Service::where('tenant_id', $tenant->id)->where('is_active', true)->count(),
-            'inactive' => Service::where('tenant_id', $tenant->id)->where('is_active', false)->count(),
+            'total' => $counts->sum(),
+            'active' => $counts->get(1, 0),
+            'inactive' => $counts->get(0, 0),
         ];
 
         return view('owner.services.index', compact('services', 'stats'));
@@ -39,7 +45,12 @@ class ServiceWebController extends Controller
     public function store(Request $request)
     {
         $tenant = app('currentTenant');
+        $plan = Plan::where('slug', $tenant->plan)->first();
+        $currentServiceCount = Service::where('tenant_id', $tenant->id)->count();
 
+        if (! $plan || $currentServiceCount >= ($plan->max_services ?? 0)) {
+            return back()->withErrors(['limit' => 'Service limit reached for your current plan. Please upgrade to add more services.']);
+        }
         $request->validate([
             'name' => 'required|string|max:255',
             'category' => ['required', Rule::in(['hair', 'skin', 'nail', 'bridal', 'massage', 'other'])],
@@ -58,7 +69,8 @@ class ServiceWebController extends Controller
             'is_active' => true,
         ]);
 
-        return back()->with('success', "Service \"{$request->name}\" add ho gayi!");
+        return back()->with('success', "Service \"{$request->name}\" added successfully.");
+
     }
 
     public function update(Request $request, $id)
@@ -77,15 +89,28 @@ class ServiceWebController extends Controller
 
         $service->update($request->only(['name', 'category', 'duration_minutes', 'price', 'description', 'is_active']));
 
-        return back()->with('success', 'Service update ho gayi!');
+        return back()->with('success', 'Service updated successfully.');
+
     }
 
     public function destroy($id)
     {
         $tenant = app('currentTenant');
         $service = Service::where('tenant_id', $tenant->id)->findOrFail($id);
+
+        // Upcoming appointments check
+        $upcomingCount = $service->appointments()
+            ->whereIn('status', ['pending', 'confirmed'])
+            ->whereDate('appointment_date', '>=', today())
+            ->count();
+
+        if ($upcomingCount > 0) {
+            return back()->withErrors(['limit' => "Cannot deactivate: {$upcomingCount} upcoming appointment(s) use this service.",
+            ]);
+        }
+
         $service->update(['is_active' => false]);
 
-        return back()->with('success', 'Service deactivate ho gayi.');
+        return back()->with('success', 'Service deactivated successfully.');
     }
 }

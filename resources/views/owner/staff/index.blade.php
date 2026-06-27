@@ -1,131 +1,234 @@
-@extends('owner.layouts.app')
-@section('title','Staff')
-@section('page-title','Staff Management')
+@extends('layouts.owner')
+
+@section('title', 'Staff Management')
+@section('page-title', 'Staff Matrix')
+@section('breadcrumb', 'Manage / Staff')
+
 @section('topbar-actions')
-  <button class="btn-gold-sm" onclick="document.getElementById('addModal').style.display='flex'">
-    <i class="bi bi-plus-lg"></i> Add Staff
-  </button>
+<button class="btn-lux-gold btn-sm" onclick="openAddStaffModal()">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i> Add Staff Member
+</button>
 @endsection
 
-@push('styles')
-<style>
-  .staff-card{background:var(--bg-card);border:1px solid var(--border);border-radius:14px;overflow:hidden;transition:all var(--transition);position:relative}
-  .staff-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.08),transparent)}
-  .staff-card:hover{border-color:rgba(201,169,110,.2);box-shadow:0 12px 50px rgba(0,0,0,.5);transform:translateY(-3px)}
-  .staff-av-lg{width:70px;height:70px;border-radius:50%;background:var(--gold-grad);display:flex;align-items:center;justify-content:center;font-family:var(--ff-display);font-size:1.6rem;font-weight:400;color:#1a1400;margin:0 auto 1rem;box-shadow:0 4px 20px var(--gold-glow-2)}
-  .staff-avail{display:inline-flex;align-items:center;gap:.35rem;font-size:.6rem;font-weight:600;letter-spacing:.12em;text-transform:uppercase;padding:.2rem .6rem;border-radius:20px}
-  .spec-tag{display:inline-flex;align-items:center;font-size:.6rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:.18rem .5rem;border-radius:20px;background:var(--bg-card-2);border:1px solid var(--border-2);color:var(--text-2);margin:0 .2rem .25rem 0}
-  .comm-badge{display:inline-flex;align-items:center;gap:.3rem;background:var(--gold-dim);color:var(--gold);border:1px solid rgba(201,169,110,.2);font-size:.62rem;font-weight:700;letter-spacing:.1em;padding:.22rem .6rem;border-radius:20px}
-  .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);backdrop-filter:blur(6px);z-index:500;align-items:center;justify-content:center;padding:1rem}
-  .modal-box{background:var(--bg-card);border:1px solid var(--border-2);border-radius:16px;padding:2rem;width:100%;max-width:500px;max-height:90vh;overflow-y:auto}
-  .fl-group{margin-bottom:1.1rem}
-  .fl-group label{display:block;font-size:.65rem;font-weight:600;letter-spacing:.15em;text-transform:uppercase;color:var(--text-3);margin-bottom:.4rem}
-  .fl-group input,.fl-group select{width:100%;background:var(--bg-input);border:1px solid var(--border-2);border-radius:8px;color:var(--text);font-family:var(--ff-body);font-size:.82rem;padding:.7rem 1rem;outline:none;transition:border-color .25s}
-  .fl-group input:focus,.fl-group select:focus{border-color:var(--gold)}
-</style>
-@endpush
-
 @section('content')
-<div class="row g-3 mb-3">
-  <div class="col-4 fade-up s1"><div class="card-lux kpi-pad gold-border"><div class="kpi-label">Total Staff</div><div class="kpi-value" style="color:var(--gold)">{{ $stats['total'] }}</div></div></div>
-  <div class="col-4 fade-up s2"><div class="card-lux kpi-pad" style="border-top:2px solid var(--emerald)"><div class="kpi-label">Available</div><div class="kpi-value" style="color:var(--emerald)">{{ $stats['available'] }}</div></div></div>
-  <div class="col-4 fade-up s3"><div class="card-lux kpi-pad" style="border-top:2px solid var(--purple)"><div class="kpi-label">Avg Commission</div><div class="kpi-value" style="color:var(--purple)">{{ round($stats['avg_commission']) }}%</div></div></div>
+
+<div class="mb-4 fade-up s1">
+    <x-cards.stat-row :stats="[
+        ['label' => 'Total Registered Staff',    'value' => $stats['total'],                    'color' => 'var(--gold)'],
+        ['label' => 'Available Artists',         'value' => $stats['available'],                'color' => 'var(--emerald)'],
+        ['label' => 'Average Commission Tier',   'value' => round($stats['avg_commission']).'%','color' => 'var(--purple)'],
+    ]" />
 </div>
 
 <div class="row g-3 fade-up s2">
-  @forelse($staff as $s)
-  <div class="col-sm-6 col-lg-4">
-    <div class="staff-card p-4" style="text-align:center">
-      <div class="staff-av-lg">{{ strtoupper(substr($s->user?->name ?? 'S', 0, 2)) }}</div>
-      <div style="font-size:.95rem;font-weight:500;color:var(--text);margin-bottom:.2rem">{{ $s->user?->name }}</div>
-      <div style="font-size:.68rem;color:var(--text-3);letter-spacing:.12em;text-transform:uppercase;margin-bottom:.6rem">{{ $s->user?->email }}</div>
-      <span class="staff-avail {{ $s->is_available ? 'lb-green' : 'lb-red' }} lux-badge">
-        <i class="bi bi-circle-fill" style="font-size:.35rem"></i>
-        {{ $s->is_available ? 'Available' : 'Unavailable' }}
-      </span>
-      @if($s->specializations)
-        <div style="margin-top:.8rem">
-          @foreach($s->specializations as $sp)
-            <span class="spec-tag">{{ $sp }}</span>
-          @endforeach
-        </div>
-      @endif
-      <div style="margin-top:.8rem">
-        <span class="comm-badge"><i class="bi bi-percent"></i> {{ $s->commission_percent }}% Commission</span>
-      </div>
-      <div style="display:flex;gap:.4rem;margin-top:1rem;justify-content:center">
-        <button class="btn-ghost-sm" onclick="openEdit({{ $s->id }},'{{ addslashes($s->user?->name) }}','{{ $s->user?->phone }}',{{ $s->commission_percent }},'{{ implode(',',$s->specializations??[]) }}',{{ $s->is_available?1:0 }})">
-          <i class="bi bi-pencil"></i> Edit
-        </button>
-        <form method="POST" action="{{ route('owner.staff.destroy', $s->id) }}" style="display:inline" onsubmit="return confirm('Deactivate karein?')">
-          @csrf @method('DELETE')
-          <button type="submit" class="btn-ghost-sm" style="border-color:var(--rose);color:var(--rose)"><i class="bi bi-trash3"></i></button>
-        </form>
-      </div>
-    </div>
-  </div>
-  @empty
-  <div class="col-12" style="text-align:center;padding:3rem;color:var(--text-3)">
-    <i class="bi bi-people" style="font-size:2rem;display:block;margin-bottom:.5rem"></i>
-    Koi staff nahi. Pehla staff member add karein!
-  </div>
-  @endforelse
-</div>
+    @forelse($staff as $s)
+    <div class="col-12 col-md-6 col-xl-4">
+        <article class="card-lux p-4 h-100 d-flex flex-column" style="position: relative;">
 
-{{-- Add/Edit Modal --}}
-<div class="modal-overlay" id="addModal" onclick="if(event.target===this)this.style.display='none'">
-  <div class="modal-box">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem">
-      <div style="font-family:var(--ff-display);font-size:1.3rem;color:var(--text)" id="modalTitle">Add Staff Member</div>
-      <button onclick="closeModal()" style="background:none;border:none;color:var(--text-3);font-size:1.2rem;cursor:pointer"><i class="bi bi-x-lg"></i></button>
+            <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                <div style="width: 48px; height: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bg-input); border: 1px solid var(--border-2); font-size: 1rem; font-weight: 600; letter-spacing: 1px; color: var(--text-2);" aria-hidden="true">
+                    {{ strtoupper(substr($s->user?->name ?? 'S', 0, 2)) }}
+                </div>
+
+                <div style="flex: 1; min-width: 0;">
+                    <h4 class="serif truncate" style="font-size: 1.1rem; font-weight: 500; color: var(--text); margin-bottom: 0;">
+                        {{ $s->user?->name }}
+                    </h4>
+                    <p class="truncate" style="font-size: 0.75rem; color: var(--text-3); margin-top: 0.2rem; margin-bottom: 0;">
+                        {{ $s->user?->email }}
+                    </p>
+
+                    <div style="margin-top: 0.5rem;">
+                        <span class="status-badge {{ $s->is_available ? 'badge-active' : 'badge-suspended' }}" style="font-size: 0.6rem; padding: 0.2rem 0.5rem;">
+                            @if($s->is_available) <span class="live-dot" style="margin-right: 0.2rem;"></span> @endif
+                            {{ $s->is_available ? 'Available' : 'On Leave' }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            @if($s->specializations)
+            <div style="margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.4rem; min-height: 24px;">
+                @foreach($s->specializations as $sp)
+                <span style="display: inline-flex; align-items: center; border-radius: var(--r-md); background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 0.2rem 0.6rem; font-size: 0.65rem; font-weight: 500; color: var(--text-2);">
+                    {{ $sp }}
+                </span>
+                @endforeach
+            </div>
+            @endif
+
+            <div style="margin-top: auto; padding-top: 1.25rem;">
+                <div style="border-radius: var(--r-md); border: 1px solid rgba(255,255,255,0.03); background: rgba(255,255,255,0.02); padding: 0.75rem 1rem;">
+                    <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.75rem; margin-bottom: 0.5rem;">
+                        <span style="font-weight: 500; color: var(--text-3);">Payout Structure</span>
+                        <span style="display: inline-flex; align-items: center; gap: 0.3rem; font-weight: 600; color: var(--text);">
+                            <i class="bi bi-percent" style="color: var(--purple);"></i>
+                            {{ $s->commission_percent }}% flat (fallback)
+                        </span>
+                    </div>
+
+                    {{-- Tier list --}}
+                    @if($s->commissionTiers->isNotEmpty())
+                    <div style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.3rem;">
+                        @foreach($s->commissionTiers as $tier)
+                        <div style="display: flex; align-items: center; justify-content: space-between; font-size: 0.72rem; background: rgba(255,255,255,0.02); border-radius: 6px; padding: 0.3rem 0.5rem;">
+                            <span style="color: var(--text-3);">
+                                ₹{{ number_format($tier->min_revenue, 0) }}
+                                – {{ $tier->max_revenue ? '₹' . number_format($tier->max_revenue, 0) : '∞' }}
+                            </span>
+                            <span style="color: var(--gold); font-weight: 600;">{{ $tier->commission_percent }}%</span>
+                            <form method="POST" action="{{ route('owner.staff.tiers.destroy', $tier->id) }}" class="d-inline" onsubmit="return confirm('Remove this tier?');">
+                                @csrf @method('DELETE')
+                                <button type="submit" style="background: none; border: none; color: var(--rose); cursor: pointer; font-size: 0.75rem; padding: 0;" title="Remove tier">
+                                    <i class="bi bi-x"></i>
+                                </button>
+                            </form>
+                        </div>
+                        @endforeach
+                    </div>
+                    @else
+                    <p style="font-size: 0.7rem; color: var(--text-3); margin: 0.4rem 0 0; font-style: italic;">No tiers set — flat rate applies.</p>
+                    @endif
+
+                    {{-- Add tier mini form --}}
+                    <details style="margin-top: 0.6rem;">
+                        <summary style="font-size: 0.72rem; color: var(--teal-light); cursor: pointer; list-style: none; display: flex; align-items: center; gap: 0.3rem;">
+                            <i class="bi bi-plus-circle"></i> Add revenue tier
+                        </summary>
+                        <form method="POST" action="{{ route('owner.staff.tiers.store', $s->id) }}" style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem;">
+                            @csrf
+                            <div style="display: flex; gap: 0.4rem;">
+                                <input type="number" name="min_revenue" placeholder="Min ₹" min="0" step="1000" style="flex: 1; font-size: 0.72rem; padding: 0.3rem 0.5rem; border-radius: 4px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text);" required />
+                                <input type="number" name="max_revenue" placeholder="Max ₹ (blank=∞)" min="0" step="1000" style="flex: 1; font-size: 0.72rem; padding: 0.3rem 0.5rem; border-radius: 4px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text);" />
+                            </div>
+                            <div style="display: flex; gap: 0.4rem; align-items: center;">
+                                <input type="number" name="commission_percent" placeholder="Rate %" min="0" max="50" step="0.5" style="flex: 1; font-size: 0.72rem; padding: 0.3rem 0.5rem; border-radius: 4px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text);" required />
+                                <button type="submit" style="padding: 0.3rem 0.7rem; border-radius: 4px; background: var(--gold); color: #1a1400; font-size: 0.72rem; font-weight: 600; border: none; cursor: pointer;">Add</button>
+                            </div>
+                        </form>
+                    </details>
+                </div>
+
+                <div style="margin-top: 1rem; display: flex; align-items: center; justify-content: flex-end; gap: 0.5rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+                    <button type="button" class="btn-icon-action" style="font-size: 0.85rem;" title="Edit Staff" aria-label="Edit staff member" data-staff-id="{{ $s->id }}" data-staff-name="{{ $s->user?->name }}" data-staff-phone="{{ $s->user?->phone }}" data-staff-commission="{{ $s->commission_percent }}" data-staff-specializations="{{ implode(',', $s->specializations ?? []) }}" onclick="handleEditStaffModalTrigger(this)">
+                        <i class="bi bi-pencil" aria-hidden="true"></i>
+                    </button>
+                    <form method="POST" action="{{ route('owner.staff.destroy', $s->id) }}" class="d-inline" onsubmit="return confirm('Are you sure you want to remove this staff member?');">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="btn-icon-action" title="Remove Staff" aria-label="Remove staff member" style="font-size: 0.85rem; color: var(--rose);">
+                            <i class="bi bi-trash" aria-hidden="true"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+        </article>
     </div>
-    <form method="POST" id="staffForm" action="{{ route('owner.staff.store') }}">
-      @csrf
-      <span id="methodField"></span>
-      <div id="addOnlyFields">
-        <div class="fl-group"><label>Email *</label><input type="email" name="email" id="f_email" required /></div>
-        <div class="row g-2">
-          <div class="col-6"><div class="fl-group"><label>Password *</label><input type="password" name="password" id="f_pass" /></div></div>
-          <div class="col-6"><div class="fl-group"><label>Confirm Password *</label><input type="password" name="password_confirmation" /></div></div>
-        </div>
-      </div>
-      <div class="fl-group"><label>Full Name *</label><input type="text" name="name" id="f_name" required /></div>
-      <div class="fl-group"><label>Phone *</label><input type="text" name="phone" id="f_phone" required /></div>
-      <div class="fl-group"><label>Commission % *</label><input type="number" name="commission_percent" id="f_comm" min="0" max="100" step="0.5" required /></div>
-      <div class="fl-group"><label>Specializations (comma-separated)</label><input type="text" name="specializations" id="f_spec" placeholder="Hair, Bridal, Nail Art" /></div>
-      <div style="display:flex;gap:.8rem;margin-top:.8rem">
-        <button type="button" onclick="closeModal()" class="btn-ghost-sm" style="flex:1;justify-content:center">Cancel</button>
-        <button type="submit" class="btn-gold-sm" style="flex:2;justify-content:center"><i class="bi bi-check-lg"></i> Save</button>
-      </div>
-    </form>
-  </div>
+    @empty
+    <div class="col-12">
+        <x-empty-state icon="bi-people" title="No Staff Executives Registered" text="Database staff logs have returned empty fields. Registry operations nodes to assign active stylists." />
+    </div>
+    @endforelse
 </div>
+@if($staff->hasPages())
+<div class="mt-4 d-flex justify-content-center">
+    {{ $staff->links() }}
+</div>
+@endif
+<x-cards.modal id="addStaffModal" title="Add Staff Member Account">
+    <form method="POST" id="staffForm" action="{{ route('owner.staff.store') }}">
+        @csrf
+        <span id="staffMethodField"></span>
+
+        <div class="row g-3">
+            <div id="addOnlyFields" class="col-12 row g-3 m-0 p-0">
+                <div class="col-12">
+                    <x-forms.input name="email" id="email" label="Professional Login Email Address *" type="email" :required="true" />
+                </div>
+                <div class="col-12 col-md-6">
+                    <x-forms.input name="password" id="password" label="Portal Access Password *" type="password" :required="true" />
+                </div>
+                <div class="col-12 col-md-6">
+                    <x-forms.input name="password_confirmation" id="password_confirmation" label="Confirm Password Mapping *" type="password" />
+                </div>
+                <div class="col-12 my-2">
+                    <div style="border-top: 1px solid var(--border);"></div>
+                </div>
+            </div>
+
+            <div class="col-12 col-md-6">
+                <x-forms.input name="name" id="name" label="Full Identity Name *" :required="true" />
+            </div>
+            <div class="col-12 col-md-6">
+                <x-forms.input name="phone" id="phone" label="Primary Phone Connection *" :required="true" />
+            </div>
+
+            <div class="col-12">
+                <x-forms.input name="commission_percent" id="commission_percent" label="Commission Payout Share (%)" type="number" min="0" max="100" step="0.5" />
+            </div>
+            <div class="col-12">
+                <x-forms.input name="specializations" id="specializations" label="Specialization Tags Profile (comma-separated)" placeholder="e.g. Hair Cut, Bridal Makeup, Nail Artistry" />
+            </div>
+        </div>
+
+        <div style="margin-top: 1.5rem; display: flex; align-items: center; justify-content: flex-end; gap: 0.75rem; border-top: 1px solid var(--border); padding-top: 1rem;">
+            <button type="button" onclick="LuxModal.close('addStaffModal')" class="btn-lux-ghost btn-sm border-0">Cancel</button>
+            <button type="submit" class="btn-lux-gold btn-sm" data-loading-text="Saving Staff...">
+                Confirm Save Account
+            </button>
+        </div>
+    </form>
+</x-cards.modal>
+
 @endsection
 
 @push('scripts')
 <script>
-function openEdit(id, name, phone, comm, spec, avail) {
-  document.getElementById('modalTitle').textContent = 'Edit Staff';
-  document.getElementById('staffForm').action = `/owner/staff/${id}`;
-  document.getElementById('methodField').innerHTML = `<input type="hidden" name="_method" value="PUT">`;
-  document.getElementById('addOnlyFields').style.display = 'none';
-  document.getElementById('f_email').removeAttribute('required');
-  document.getElementById('f_pass').removeAttribute('required');
-  document.getElementById('f_name').value  = name;
-  document.getElementById('f_phone').value = phone;
-  document.getElementById('f_comm').value  = comm;
-  document.getElementById('f_spec').value  = spec;
-  document.getElementById('addModal').style.display = 'flex';
-}
-function closeModal() {
-  document.getElementById('addModal').style.display = 'none';
-  document.getElementById('staffForm').action = "{{ route('owner.staff.store') }}";
-  document.getElementById('methodField').innerHTML = '';
-  document.getElementById('modalTitle').textContent = 'Add Staff Member';
-  document.getElementById('addOnlyFields').style.display = 'block';
-  document.getElementById('f_email').setAttribute('required','');
-  document.getElementById('f_pass').setAttribute('required','');
-  document.getElementById('staffForm').reset();
-}
+    const STAFF_STORE_BASE_URL = "{{ route('owner.staff.store') }}";
+
+    function openAddStaffModal() {
+        const form = document.getElementById('staffForm');
+        form.reset();
+        form.action = STAFF_STORE_BASE_URL;
+        document.getElementById('staffMethodField').innerHTML = '';
+
+        const addFields = document.getElementById('addOnlyFields');
+        if (addFields) {
+            addFields.style.display = 'flex';
+        }
+
+        // Ensure nested fields inside component follow explicit configurations rules
+        document.getElementById('email').required = true;
+        document.getElementById('password').required = true;
+
+        document.querySelector('#addStaffModal .lux-modal-title').textContent = 'Add Staff Member Account';
+        LuxModal.open('addStaffModal');
+    }
+
+    function handleEditStaffModalTrigger(buttonElement) {
+        const dataset = buttonElement.dataset;
+        const form = document.getElementById('staffForm');
+
+        document.querySelector('#addStaffModal .lux-modal-title').textContent = 'Edit Staff Member Attributes';
+        form.action = `/owner/staff/${dataset.staffId}`;
+        document.getElementById('staffMethodField').innerHTML = '<input type="hidden" name="_method" value="PUT">';
+
+        // Safety Hidden Form Elements Toggle Layers
+        const addFields = document.getElementById('addOnlyFields');
+        if (addFields) {
+            addFields.style.display = 'none';
+        }
+        document.getElementById('email').required = false;
+        document.getElementById('password').required = false;
+
+        // Mappings
+        document.getElementById('name').value = dataset.staffName;
+        document.getElementById('phone').value = dataset.staffPhone;
+        document.getElementById('commission_percent').value = dataset.staffCommission;
+        document.getElementById('specializations').value = dataset.staffSpecializations;
+
+        LuxModal.open('addStaffModal');
+    }
+
 </script>
 @endpush

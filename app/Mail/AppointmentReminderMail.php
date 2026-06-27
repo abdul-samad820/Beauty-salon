@@ -13,17 +13,26 @@ class AppointmentReminderMail extends Mailable
 {
     use Queueable, SerializesModels;
 
+    /**
+     * Create a new message instance.
+     */
     public function __construct(
         public Appointment $appointment
     ) {}
 
+    /**
+     * Get the message envelope.
+     */
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Reminder: Aapka appointment 2 ghante baad hai!',
+            subject: 'Reminder: Your appointment is in 2 hours!',
         );
     }
 
+    /**
+     * Get the message content definition.
+     */
     public function content(): Content
     {
         return new Content(

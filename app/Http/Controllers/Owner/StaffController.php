@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Owner;
 use App\Http\Controllers\Controller;
 use App\Models\Staff;
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -13,7 +14,9 @@ use Illuminate\Validation\Rule;
 class StaffController extends Controller
 {
     /**
-     * Saara staff fetch karo
+     * Retrieve all staff members.
+     *
+     * @return JsonResponse
      */
     public function index()
     {
@@ -31,7 +34,9 @@ class StaffController extends Controller
     }
 
     /**
-     * Naya staff add karo
+     * Create a new staff member.
+     *
+     * @return JsonResponse
      */
     public function store(Request $request)
     {
@@ -56,7 +61,7 @@ class StaffController extends Controller
             $currentTenant = app('currentTenant');
 
             /**
-             * Step 1: User create
+             * Step 1: Create the User
              */
             $user = User::create([
                 'tenant_id' => $currentTenant->id,
@@ -68,12 +73,12 @@ class StaffController extends Controller
             ]);
 
             /**
-             * Step 2: Role assign
+             * Step 2: Assign Role
              */
             $user->assignRole('staff');
 
             /**
-             * Step 3: Staff profile create
+             * Step 3: Create Staff Profile
              */
             $staff = Staff::create([
                 'tenant_id' => $currentTenant->id,
@@ -105,7 +110,10 @@ class StaffController extends Controller
     }
 
     /**
-     * Single staff fetch karo
+     * Retrieve a specific staff member.
+     *
+     * @param  int  $id
+     * @return JsonResponse
      */
     public function show($id)
     {
@@ -128,7 +136,10 @@ class StaffController extends Controller
     }
 
     /**
-     * Staff update karo
+     * Update staff member details.
+     *
+     * @param  int  $id
+     * @return JsonResponse
      */
     public function update(Request $request, $id)
     {
@@ -165,7 +176,7 @@ class StaffController extends Controller
         DB::transaction(function () use ($request, $staff) {
 
             /**
-             * User update
+             * Update User record
              */
             $userData = [];
 
@@ -190,7 +201,7 @@ class StaffController extends Controller
             }
 
             /**
-             * Staff update
+             * Update Staff record
              */
             $staffData = [];
 
@@ -221,34 +232,39 @@ class StaffController extends Controller
         ]);
     }
 
-   public function destroy($id)
-{
-    $currentTenant = app('currentTenant');
+    /**
+     * Delete a staff member.
+     *
+     * @param  int  $id
+     * @return JsonResponse
+     */
+    public function destroy($id)
+    {
+        $currentTenant = app('currentTenant');
 
-    $staff = Staff::with('user')
-        ->where('tenant_id', $currentTenant->id)
-        ->find($id);
+        $staff = Staff::with('user')
+            ->where('tenant_id', $currentTenant->id)
+            ->find($id);
 
-    if (! $staff) {
-        return response()->json([
-            'message' => 'Staff not found',
-        ], 404);
-    }
-
-    DB::transaction(function () use ($staff) {
-
-        $staff->delete();
-
-        if ($staff->user) {
-            $staff->user->update([
-                'is_active' => false,
-            ]);
+        if (! $staff) {
+            return response()->json([
+                'message' => 'Staff not found',
+            ], 404);
         }
 
-    });
+        DB::transaction(function () use ($staff) {
 
-    return response()->json([
-        'message' => 'Staff removed successfully',
-    ]);
-}
+            $staff->delete();
+
+            if ($staff->user) {
+                $staff->user->update([
+                    'is_active' => false,
+                ]);
+            }
+        });
+
+        return response()->json([
+            'message' => 'Staff removed successfully',
+        ]);
+    }
 }

@@ -1,220 +1,316 @@
-@extends('superadmin.layouts.app')
+@extends('layouts.superadmin')
 
-@section('title', 'Tenant Management')
-@section('page-title', 'Tenant Management')
-@section('page-sub')
-  {{ $stats['total'] }} parlours &nbsp;·&nbsp;
-  {{ $stats['active'] }} active &nbsp;·&nbsp;
-  {{ $stats['trial'] }} trials &nbsp;·&nbsp;
-  {{ $stats['suspended'] }} suspended
-@endsection
+@section('title', 'Platform Core Tenancy')
+@section('page-title', 'Global Tenants Register')
+@section('breadcrumb', 'Platform / Tenants Registry')
 
 @section('topbar-actions')
-  <a href="{{ route('superadmin.tenants.create') }}" class="btn-gold">
-    <i class="bi bi-plus-lg"></i> Add Tenant
-  </a>
+<button class="btn-lux-gold btn-sm" onclick="LuxModalManager.openCreationRegistry()">
+    <i class="bi bi-plus-lg" aria-hidden="true"></i> Provision New Tenant Node
+</button>
 @endsection
 
 @push('styles')
 <style>
-  .mini-stat { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:1rem 1.2rem; display:flex; align-items:center; gap:0.9rem; }
-  .mini-stat-icon { width:38px; height:38px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; }
-  .mini-stat-val { font-family:var(--ff-display); font-size:1.5rem; font-weight:400; line-height:1; }
-  .mini-stat-label { font-size:0.65rem; color:var(--text-3); letter-spacing:0.1em; text-transform:uppercase; margin-top:0.2rem; }
-  .filter-bar { display:flex; flex-wrap:wrap; gap:0.75rem; align-items:center; margin-bottom:1.5rem; }
-  .filter-tabs { display:flex; gap:0.4rem; background:rgba(255,255,255,0.03); border:1px solid var(--border); border-radius:8px; padding:0.3rem; }
-  .filter-tab { padding:0.35rem 0.9rem; border-radius:6px; font-size:0.72rem; font-weight:500; color:var(--text-2); cursor:pointer; transition:all 0.25s; border:none; background:transparent; }
-  .filter-tab.active { background:var(--gold); color:#1a1400; }
-  .filter-tab:hover:not(.active) { background:rgba(255,255,255,0.05); color:var(--text); }
-  .filter-input { background:rgba(255,255,255,0.04); border:1px solid var(--border-2); border-radius:8px; color:var(--text); font-family:var(--ff-body); font-size:0.8rem; padding:0.5rem 1rem; outline:none; transition:border-color 0.3s; }
-  .filter-input:focus { border-color:var(--gold); }
-  select.filter-input option { background:var(--bg-card); color:var(--text); }
-  .tenant-table { width:100%; border-collapse:collapse; }
-  .tenant-table th { font-size:0.6rem; font-weight:600; letter-spacing:0.2em; text-transform:uppercase; color:var(--text-3); padding:0.7rem 1rem; border-bottom:1px solid var(--border); text-align:left; white-space:nowrap; }
-  .tenant-table td { padding:0.85rem 1rem; font-size:0.82rem; color:var(--text-2); border-bottom:1px solid rgba(255,255,255,0.03); white-space:nowrap; }
-  .tenant-table tr:hover td { background:rgba(255,255,255,0.02); color:var(--text); }
-  .tenant-table tr:last-child td { border-bottom:none; }
-  .action-btn { width:30px; height:30px; border-radius:6px; border:1px solid var(--border); background:transparent; display:inline-flex; align-items:center; justify-content:center; color:var(--text-3); cursor:pointer; transition:all 0.2s; font-size:0.8rem; text-decoration:none; }
-  .action-btn:hover         { border-color:var(--gold);    color:var(--gold);    background:var(--gold-dim); }
-  .action-btn.danger:hover  { border-color:var(--rose);    color:var(--rose);    background:var(--rose-dim); }
-  .action-btn.success:hover { border-color:var(--emerald); color:var(--emerald); background:var(--emerald-dim); }
-  .pagination-custom { display:flex; gap:0.3rem; align-items:center; }
-  .page-btn { width:32px; height:32px; border-radius:6px; border:1px solid var(--border); background:transparent; display:flex; align-items:center; justify-content:center; color:var(--text-2); cursor:pointer; transition:all 0.25s; font-size:0.78rem; text-decoration:none; }
-  .page-btn:hover         { border-color:var(--gold); color:var(--gold); background:var(--gold-dim); }
-  .page-btn.active        { background:var(--gold); color:#1a1400; border-color:var(--gold); font-weight:600; }
-  .page-btn.disabled      { opacity:0.3; pointer-events:none; }
-  .tenant-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:0.4rem; }
-  .dot-green { background:var(--emerald); box-shadow:0 0 6px var(--emerald); }
-  .dot-gold  { background:var(--gold);    box-shadow:0 0 6px var(--gold); }
-  .dot-red   { background:var(--rose);    box-shadow:0 0 6px var(--rose); }
+    /* Premium Scrollbar */
+    .lux-scroller::-webkit-scrollbar {
+        width: 6px;
+        height: 6px;
+    }
+
+    .lux-scroller::-webkit-scrollbar-track {
+        background: rgba(255, 255, 255, 0.02);
+        border-radius: 10px;
+    }
+
+    .lux-scroller::-webkit-scrollbar-thumb {
+        background: rgba(201, 169, 110, 0.3);
+        border-radius: 10px;
+        transition: background 0.3s;
+    }
+
+    .lux-scroller::-webkit-scrollbar-thumb:hover {
+        background: var(--gold);
+    }
+
+    /* Sticky Header */
+    .lux-table thead th {
+        position: sticky;
+        top: 0;
+        background: var(--bg-card);
+        z-index: 10;
+        box-shadow: 0 1px 0 var(--border);
+        /* Ek halki line table header ke neeche */
+    }
+
 </style>
 @endpush
-
 @section('content')
 
-  {{-- ── MINI STATS ── --}}
-  <div class="row g-3 mb-4">
-    <div class="col-6 col-md-3 fade-in-up stagger-1">
-      <div class="mini-stat" style="border-top:2px solid var(--gold)">
-        <div class="mini-stat-icon" style="background:var(--gold-dim);color:var(--gold)"><i class="bi bi-buildings-fill"></i></div>
-        <div><div class="mini-stat-val" style="color:var(--gold)">{{ $stats['total'] }}</div><div class="mini-stat-label">Total Tenants</div></div>
-      </div>
+
+{{-- KPI Stats Matrix --}}
+<div class="row g-3 mb-4 fade-up">
+    @php
+    $statItems = [
+    ['label' => 'Total Subscribed Nodes', 'value' => $stats['total'] ?? 0],
+    ['label' => 'Active Core Workspaces', 'value' => $stats['active'] ?? 0],
+    ['label' => 'Trial Evaluation Phases', 'value' => $stats['trial'] ?? 0],
+    ['label' => 'Suspended Deficit States', 'value' => $stats['suspended'] ?? 0],
+    ];
+    @endphp
+    @foreach($statItems as $indexKey => $dataMetric)
+    <div class="col-6 col-lg-3 fade-up s{{ $indexKey + 1 }}">
+        <div class="card-lux kpi-pad glow-hover h-100 d-flex flex-column justify-content-center @if($indexKey === 0) gold-border @endif">
+            <div class="kpi-label">{{ $dataMetric['label'] }}</div>
+            <div class="kpi-value mb-0">{{ $dataMetric['value'] }}</div>
+        </div>
     </div>
-    <div class="col-6 col-md-3 fade-in-up stagger-2">
-      <div class="mini-stat" style="border-top:2px solid var(--emerald)">
-        <div class="mini-stat-icon" style="background:var(--emerald-dim);color:var(--emerald)"><i class="bi bi-circle-fill"></i></div>
-        <div><div class="mini-stat-val" style="color:var(--emerald)">{{ $stats['active'] }}</div><div class="mini-stat-label">Active</div></div>
-      </div>
+    @endforeach
+</div>
+
+{{-- Filters --}}
+<div class="card-lux mb-4 fade-up s2" style="padding: 1rem;">
+    <form method="GET" action="{{ route('superadmin.tenants.index') }}" id="tenantFilterForm" class="row g-3 align-items-center" role="search">
+        <div class="col-12 col-md-5 position-relative">
+            <i class="bi bi-search position-absolute top-50 translate-middle-y faint" style="left: 1.2rem; font-size: 0.85rem;"></i>
+            <input type="search" name="search" value="{{ request('search') }}" placeholder="Search tenant node, workspace owner..." class="lux-input" style="padding-left: 2.4rem;" aria-label="Search records" />
+        </div>
+
+        <div class="col-6 col-md-2">
+            <div style="position: relative;">
+                {{-- FIX: Added color-scheme: dark and option backgrounds --}}
+                <select name="status" class="lux-input" aria-label="Filter status" style="padding-right: 2rem; color-scheme: dark; background: var(--bg-input); color: var(--text);">
+                    <option value="all" style="background: var(--bg-card); color: var(--text);" {{ request('status','all') === 'all' ? 'selected' : '' }}>All Status</option>
+                    <option value="active" style="background: var(--bg-card); color: var(--text);" {{ request('status') === 'active' ? 'selected' : '' }}>Active Node</option>
+                    <option value="inactive" style="background: var(--bg-card); color: var(--text);" {{ request('status') === 'inactive' ? 'selected' : '' }}>Inactive State</option>
+                    <option value="suspended" style="background: var(--bg-card); color: var(--text);" {{ request('status') === 'suspended' ? 'selected' : '' }}>Suspended</option>
+                    <option value="trial" style="background: var(--bg-card); color: var(--text);" {{ request('status') === 'trial' ? 'selected' : '' }}>Trial Phase</option>
+                </select>
+                <div style="position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-3);">
+                    <i class="bi bi-chevron-down" style="font-size: 0.7rem;"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-2">
+            <div style="position: relative;">
+                {{-- FIX: Added color-scheme: dark and option backgrounds --}}
+                <select name="plan" class="lux-input" aria-label="Filter plans" style="padding-right: 2rem; color-scheme: dark; background: var(--bg-input); color: var(--text);">
+                    <option value="all" style="background: var(--bg-card); color: var(--text);" {{ request('plan','all') === 'all' ? 'selected' : '' }}>All Tiers</option>
+                    <option value="free" style="background: var(--bg-card); color: var(--text);" {{ request('plan') === 'free' ? 'selected' : '' }}>Free</option>
+                    <option value="basic" style="background: var(--bg-card); color: var(--text);" {{ request('plan') === 'basic' ? 'selected' : '' }}>Basic</option>
+                    <option value="premium" style="background: var(--bg-card); color: var(--text);" {{ request('plan') === 'premium' ? 'selected' : '' }}>Premium</option>
+                </select>
+                <div style="position: absolute; right: 0.8rem; top: 50%; transform: translateY(-50%); pointer-events: none; color: var(--text-3);">
+                    <i class="bi bi-chevron-down" style="font-size: 0.7rem;"></i>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-12 col-md-3 d-flex gap-2 justify-content-md-end">
+            <button type="submit" class="btn-lux-ghost btn-sm">Apply Filters</button>
+            <a href="{{ route('superadmin.tenants.index') }}" class="btn-lux-ghost btn-sm faint border-0">Clear</a>
+        </div>
+    </form>
+</div>
+
+{{-- Data Table --}}
+<div class="card-lux fade-up s3">
+    <div class="lux-table-wrapper lux-scroller" style="max-height: 450px; overflow-y: auto; overflow-x: auto;">
+        <table class="lux-table">
+            <thead>
+                <tr>
+                    <th style="width: 80px;">Node ID</th>
+                    <th>Target Domain Scope</th>
+                    <th>Account Owner</th>
+                    <th>Contact Log</th>
+                    <th>Tier Plan</th>
+                    <th>Lifecycle State</th>
+                    <th>Provision Date</th>
+                    <th class="text-end">Control</th>
+                </tr>
+            </thead>
+            <tbody>
+                @forelse($tenants as $t)
+                <tr>
+                    <td class="faint" style="font-family: monospace;">#{{ $t->id }}</td>
+                    <td>
+                        <div style="font-weight: 500; color: var(--text);">{{ $t->name }}</div>
+                        <div class="faint" style="font-size: var(--text-xs); font-family: monospace; margin-top: 2px;">{{ $t->subdomain }}.{{ config('app.domain','example.com') }}</div>
+                    </td>
+                    <td>
+                        <div style="font-weight: 400;">{{ $t->owner?->name ?? 'Detached Identity' }}</div>
+                    </td>
+                    <td>
+                        <div>{{ $t->email }}</div>
+                        <div class="faint" style="font-size: var(--text-xs); margin-top: 2px;">{{ $t->phone }}</div>
+                    </td>
+                    <td>
+                        <span class="plan-badge plan-{{ strtolower($t->plan) }}">{{ $t->plan }}</span>
+                    </td>
+                    <td>
+                        <span class="status-badge badge-{{ strtolower($t->status) }}">
+                            @if($t->status === 'active') <span class="live-dot"></span> @endif
+                            {{ ucfirst($t->status) }}
+                        </span>
+                    </td>
+                    <td class="faint" style="font-size: var(--text-sm);">
+                        {{ $t->created_at->format('d M Y') }}
+                    </td>
+                    <td class="text-end">
+                        <div class="d-flex align-items-center justify-content-end gap-2">
+                            <a href="{{ route('superadmin.tenants.show', $t->id) }}" class="btn-icon-action" title="View Metrics">
+                                <i class="bi bi-eye"></i>
+                            </a>
+                            <button type="button" class="btn-icon-action" title="Modify Context" onclick="LuxModalManager.openEditRegistry({{ $t->id }}, '{{ addslashes($t->name) }}', '{{ $t->status }}', '{{ $t->plan }}', '{{ addslashes($t->subdomain) }}', '{{ addslashes($t->phone ?? '') }}', '{{ addslashes($t->address ?? '') }}')">
+                                <i class="bi bi-pencil"></i>
+
+                                @if($t->status !== 'suspended')
+                                <form method="POST" action="{{ route('superadmin.tenants.status', $t->id) }}" class="d-inline">
+                                    @method('PATCH')
+                                    @csrf
+                                    <input type="hidden" name="status" value="suspended">
+                                    <button type="submit" class="btn-icon-action" title="Suspend System" style="color: var(--rose);">
+                                        <i class="bi bi-slash-circle"></i>
+                                    </button>
+                                </form>
+                                @else
+                                <form method="POST" action="{{ route('superadmin.tenants.status', $t->id) }}" class="d-inline">
+                                    @csrf
+                                    @method('PATCH')
+                                    <input type="hidden" name="status" value="active">
+                                    <button type="submit" class="btn-icon-action" title="Revoke Suspension" style="color: var(--emerald);">
+                                        <i class="bi bi-check-circle"></i>
+                                    </button>
+                                </form>
+                                @endif
+                        </div>
+                    </td>
+                </tr>
+                @empty
+                <tr>
+                    <td colspan="8" class="text-center" style="padding: 4rem 2rem;">
+                        <i class="bi bi-buildings faint d-block mb-3" style="font-size: 2rem;"></i>
+                        <h4 class="faint" style="font-size: var(--text-sm);">No multi-tenant system slices generated.</h4>
+                        <p class="muted" style="font-size: var(--text-xs);">Click top operations boundary to allocate cloud partitions.</p>
+                    </td>
+                </tr>
+                @endforelse
+            </tbody>
+        </table>
     </div>
-    <div class="col-6 col-md-3 fade-in-up stagger-3">
-      <div class="mini-stat" style="border-top:2px solid var(--gold)">
-        <div class="mini-stat-icon" style="background:var(--gold-dim);color:var(--gold)"><i class="bi bi-hourglass-split"></i></div>
-        <div><div class="mini-stat-val" style="color:var(--gold)">{{ $stats['trial'] }}</div><div class="mini-stat-label">Trial Period</div></div>
-      </div>
+
+    @if($tenants->hasPages())
+    <div class="lux-pagination-wrapper border-top" style="border-color: var(--border) !important; padding: 1rem 1.5rem;">
+        <x-tables.pagination :paginator="$tenants" />
     </div>
-    <div class="col-6 col-md-3 fade-in-up stagger-4">
-      <div class="mini-stat" style="border-top:2px solid var(--rose)">
-        <div class="mini-stat-icon" style="background:var(--rose-dim);color:var(--rose)"><i class="bi bi-pause-circle-fill"></i></div>
-        <div><div class="mini-stat-val" style="color:var(--rose)">{{ $stats['suspended'] }}</div><div class="mini-stat-label">Suspended</div></div>
-      </div>
-    </div>
-  </div>
+    @endif
+</div>
 
-  {{-- ── FILTERS ── --}}
-  <form method="GET" action="{{ route('superadmin.tenants.index') }}" id="filterForm">
-    <div class="filter-bar fade-in-up stagger-2">
-      <div class="filter-tabs">
-        @foreach(['all' => 'All', 'active' => 'Active', 'trial' => 'Trial', 'suspended' => 'Suspended'] as $val => $label)
-          <button type="submit" name="status" value="{{ $val }}"
-            class="filter-tab {{ request('status', 'all') === $val ? 'active' : '' }}">
-            {{ $label }}
-          </button>
-        @endforeach
-      </div>
+{{-- Creation / Edit Modal --}}
+<x-cards.modal id="addTenantModal" title="Tenant Environment Details">
+    <form method="POST" id="tenantForm" action="{{ route('superadmin.tenants.store') }}">
+        @csrf
+        <span id="tenantMethodField"></span>
 
-      <select name="plan" class="filter-input" style="min-width:130px" onchange="document.getElementById('filterForm').submit()">
-        <option value="">All Plans</option>
-        @foreach(['free' => 'Free', 'pro' => 'Pro', 'enterprise' => 'Enterprise'] as $val => $label)
-          <option value="{{ $val }}" {{ request('plan') === $val ? 'selected' : '' }}>{{ $label }}</option>
-        @endforeach
-      </select>
+        <div class="row g-3">
+            <div class="col-12 col-md-6">
+                <x-forms.input name="business_name" label="Salon / Parlour Name *" :required="true" />
+            </div>
+            <div class="col-12 col-md-6">
+                <x-forms.input name="subdomain" label="Subdomain *" :required="true" placeholder="e.g. meesu-cosmetic" />
+            </div>
+            <div class="col-12 col-md-6 data-creation-field">
+                <x-forms.input name="owner_name" label="Owner Name *" :required="true" />
+            </div>
+            <div class="col-12 col-md-6 data-creation-field">
+                <x-forms.input name="owner_email" label="Owner Email *" type="email" :required="true" placeholder="owner@example.com" />
+            </div>
+            <div class="col-12 col-md-6 data-creation-field">
+                <x-forms.input name="owner_password" label="Password *" type="password" :required="true" />
+            </div>
+            <div class="col-12 col-md-6 data-creation-field">
+                <x-forms.input name="owner_password_confirmation" label="Confirm Password *" type="password" :required="true" />
+            </div>
+            <div class="col-12 col-md-6">
+                <x-forms.input name="phone" label="Phone Number" placeholder="9634361073" />
+            </div>
+            <div class="col-12 col-md-6">
+                <x-forms.select name="plan" label="Subscription Plan *" :options="['free' => 'Free', 'basic' => 'Basic', 'premium' => 'Premium']" selected="free" />
+            </div>
+            <div class="col-12">
+                <x-forms.textarea name="address" label="Physical Address" />
+            </div>
+        </div>
 
-      <select name="sort" class="filter-input" style="min-width:160px" onchange="document.getElementById('filterForm').submit()">
-        <option value="created_at" {{ request('sort','created_at') === 'created_at' ? 'selected' : '' }}>Sort: Newest First</option>
-        <option value="name"       {{ request('sort') === 'name' ? 'selected' : '' }}>Sort: Name A–Z</option>
-      </select>
-
-      <div style="position:relative;margin-left:auto;">
-        <i class="bi bi-search" style="position:absolute;left:0.85rem;top:50%;transform:translateY(-50%);color:var(--text-3);font-size:0.85rem;"></i>
-        <input type="text" name="search" value="{{ request('search') }}" placeholder="Search tenants…"
-          class="filter-input" style="padding-left:2.4rem;min-width:200px;" />
-      </div>
-
-      <a href="{{ route('superadmin.tenants.index') }}" class="btn-ghost">
-        <i class="bi bi-x-lg"></i> Clear
-      </a>
-    </div>
-  </form>
-
-  {{-- ── TABLE ── --}}
-  <div class="card-glass fade-in-up stagger-3">
-    <div style="overflow-x:auto">
-      <table class="tenant-table">
-        <thead>
-          <tr>
-            <th>Tenant</th>
-            <th>Subdomain</th>
-            <th>Plan</th>
-            <th>Status</th>
-            <th>Staff</th>
-            <th>Services</th>
-            <th>Appointments</th>
-            <th>Joined</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          @forelse($tenants as $tenant)
-          <tr>
-            <td>
-              <span class="tenant-dot {{ $tenant->status === 'active' ? 'dot-green' : ($tenant->status === 'suspended' ? 'dot-red' : 'dot-gold') }}"></span>
-              <strong style="font-weight:500;color:var(--text);">{{ $tenant->name }}</strong>
-            </td>
-            <td style="font-family:monospace;font-size:0.75rem;color:var(--teal-light);">
-              {{ $tenant->subdomain }}.lumiere.app
-            </td>
-            <td>
-              <span class="plan-badge plan-{{ $tenant->plan }}">{{ ucfirst($tenant->plan) }}</span>
-            </td>
-            <td>
-              <span class="status-badge {{ $tenant->status_badge_class }}">
-                <i class="bi bi-circle-fill" style="font-size:0.35rem;"></i>
-                {{ ucfirst($tenant->status) }}
-              </span>
-            </td>
-            <td>{{ $tenant->staff_count ?? 0 }}</td>
-            <td>{{ $tenant->services_count ?? 0 }}</td>
-            <td>{{ number_format($tenant->appointments_count ?? 0) }}</td>
-            <td>{{ $tenant->created_at->format('d M Y') }}</td>
-            <td>
-              <div style="display:flex;gap:0.3rem;">
-                <a href="{{ route('superadmin.tenants.show', $tenant) }}" class="action-btn" title="View"><i class="bi bi-eye"></i></a>
-                <a href="{{ route('superadmin.tenants.edit', $tenant) }}" class="action-btn" title="Edit"><i class="bi bi-pencil"></i></a>
-
-                @if($tenant->status !== 'active')
-                  <form method="POST" action="{{ route('superadmin.tenants.status', $tenant) }}" style="display:inline;">
-                    @csrf @method('PATCH')
-                    <input type="hidden" name="status" value="active">
-                    <button type="submit" class="action-btn success" title="Activate"><i class="bi bi-play-fill"></i></button>
-                  </form>
-                @else
-                  <form method="POST" action="{{ route('superadmin.tenants.status', $tenant) }}" style="display:inline;">
-                    @csrf @method('PATCH')
-                    <input type="hidden" name="status" value="suspended">
-                    <button type="submit" class="action-btn danger" title="Suspend" onclick="return confirm('Is tenant ko suspend karna chahte hain?')">
-                      <i class="bi bi-pause-fill"></i>
-                    </button>
-                  </form>
-                @endif
-              </div>
-            </td>
-          </tr>
-          @empty
-          <tr>
-            <td colspan="9" style="text-align:center;padding:3rem;color:var(--text-3);">
-              <i class="bi bi-buildings" style="font-size:2rem;display:block;margin-bottom:0.5rem;"></i>
-              Koi tenant nahi mila
-            </td>
-          </tr>
-          @endforelse
-        </tbody>
-      </table>
-    </div>
-
-    {{-- Pagination --}}
-    <div style="padding:1rem 1.2rem;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.8rem;">
-      <div style="font-size:0.75rem;color:var(--text-3);">
-        Showing <strong style="color:var(--text-2);">{{ $tenants->firstItem() }}–{{ $tenants->lastItem() }}</strong>
-        of <strong style="color:var(--text-2);">{{ $tenants->total() }}</strong> tenants
-      </div>
-      <div class="pagination-custom">
-        @if($tenants->onFirstPage())
-          <span class="page-btn disabled"><i class="bi bi-chevron-left"></i></span>
-        @else
-          <a href="{{ $tenants->previousPageUrl() }}" class="page-btn"><i class="bi bi-chevron-left"></i></a>
-        @endif
-
-        @foreach($tenants->getUrlRange(max(1, $tenants->currentPage()-2), min($tenants->lastPage(), $tenants->currentPage()+2)) as $page => $url)
-          <a href="{{ $url }}" class="page-btn {{ $page == $tenants->currentPage() ? 'active' : '' }}">{{ $page }}</a>
-        @endforeach
-
-        @if($tenants->hasMorePages())
-          <a href="{{ $tenants->nextPageUrl() }}" class="page-btn"><i class="bi bi-chevron-right"></i></a>
-        @else
-          <span class="page-btn disabled"><i class="bi bi-chevron-right"></i></span>
-        @endif
-      </div>
-    </div>
-  </div>
+        <div class="d-flex align-items-center justify-content-end gap-2 mt-4 pt-3 border-top" style="border-color: var(--border) !important;">
+            <button type="button" onclick="LuxModal.close('addTenantModal')" class="btn-lux-ghost btn-sm border-0">Abrupt Operations</button>
+            <button type="submit" class="btn-lux-gold btn-sm">
+                <i class="bi bi-check-lg" aria-hidden="true"></i> Commit Partition
+            </button>
+        </div>
+    </form>
+</x-cards.modal>
 
 @endsection
+
+@push('scripts')
+<script>
+    const LuxModalManager = {
+        STORE_URL: "{{ route('superadmin.tenants.store') }}",
+
+        openCreationRegistry: function() {
+            const modalTitle = document.querySelector('#addTenantModal .lux-modal-title');
+            if (modalTitle) modalTitle.textContent = 'Provision New Tenant Partition';
+
+            const formEl = document.getElementById('tenantForm');
+            if (formEl) {
+                formEl.reset();
+                formEl.action = this.STORE_URL;
+            }
+
+            const methodPort = document.getElementById('tenantMethodField');
+            if (methodPort) methodPort.innerHTML = '';
+
+            document.querySelectorAll('.data-creation-field').forEach(nodeBlock => {
+                nodeBlock.style.display = 'block';
+                const targetInput = nodeBlock.querySelector('input');
+                if (targetInput) targetInput.setAttribute('required', 'true');
+            });
+
+            LuxModal.open('addTenantModal');
+        },
+
+        openEditRegistry: function(nodeId, nodeName, nodeStatus, nodePlan, nodeSubdomain, nodePhone, nodeAddress) {
+            const modalTitle = document.querySelector('#addTenantModal .lux-modal-title');
+            if (modalTitle) modalTitle.textContent = 'Modify Cloud Deployment Matrix';
+
+            const formEl = document.getElementById('tenantForm');
+            if (formEl) formEl.action = `/superadmin/tenants/${nodeId}`;
+
+            const methodPort = document.getElementById('tenantMethodField');
+            if (methodPort) methodPort.innerHTML = '<input type="hidden" name="_method" value="PUT">';
+
+            const q = (name) => formEl.querySelector(`[name="${name}"]`);
+            if (q('business_name')) q('business_name').value = nodeName;
+            if (q('subdomain')) q('subdomain').value = nodeSubdomain;
+            if (q('phone')) q('phone').value = nodePhone;
+            if (q('plan')) q('plan').value = nodePlan;
+
+
+            const addrEl = formEl.querySelector('[name="address"]');
+            if (addrEl) addrEl.value = nodeAddress;
+
+
+            document.querySelectorAll('.data-creation-field').forEach(nodeBlock => {
+                nodeBlock.style.display = 'none';
+                const targetInput = nodeBlock.querySelector('input');
+                if (targetInput) targetInput.removeAttribute('required');
+            });
+
+            LuxModal.open('addTenantModal');
+        }
+    };
+
+</script>
+@endpush

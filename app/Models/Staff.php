@@ -2,13 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Staff extends Model
 {
-    use HasFactory , SoftDeletes;
+    use BelongsToTenant, HasFactory, SoftDeletes;
 
     protected $fillable = [
         'tenant_id',
@@ -25,11 +26,6 @@ class Staff extends Model
         'is_available' => 'boolean',
     ];
 
-    public function tenant()
-    {
-        return $this->belongsTo(Tenant::class);
-    }
-
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -43,5 +39,10 @@ class Staff extends Model
     public function commissions()
     {
         return $this->hasMany(Commission::class);
+    }
+
+    public function commissionTiers()
+    {
+        return $this->hasMany(CommissionTier::class)->orderBy('min_revenue');
     }
 }

@@ -14,13 +14,7 @@ class RolesAndPermissionsSeeder extends Seeder
         // Permission cache clear
         app()[PermissionRegistrar::class]->forgetCachedPermissions();
 
-        /*
-        |--------------------------------------------------------------------------
-        | Permissions
-        |--------------------------------------------------------------------------
-        */
-
-        $permissions = [
+        $webPermissions = [
             'manage services',
             'manage staff',
             'manage appointments',
@@ -28,23 +22,37 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage products',
             'view analytics',
             'manage commissions',
+            'access superadmin dashboard', // Added clean operational permission for Super Admin middleware mapping
         ];
 
-        foreach ($permissions as $permission) {
+        foreach ($webPermissions as $permission) {
             Permission::firstOrCreate([
                 'name' => $permission,
                 'guard_name' => 'web',
             ]);
         }
 
+        // Dedicated Customer permissions registered strictly on the 'customer' guard context
+        $customerPermissions = [
+            'manage customer appointments',
+        ];
+
+        foreach ($customerPermissions as $permission) {
+            Permission::firstOrCreate([
+                'name' => $permission,
+                'guard_name' => 'customer', // Bound to its isolated guard perimeter
+            ]);
+        }
+
         /*
         |--------------------------------------------------------------------------
-        | Roles
+        | Roles Configuration Matrix
         |--------------------------------------------------------------------------
         */
 
+        // FIXED: Dropped the underscore to match 'superadmin' middleware validation check explicitly
         $superAdmin = Role::firstOrCreate([
-            'name' => 'super_admin',
+            'name' => 'superadmin',
             'guard_name' => 'web',
         ]);
 
@@ -58,16 +66,11 @@ class RolesAndPermissionsSeeder extends Seeder
             'guard_name' => 'web',
         ]);
 
+        // FIXED SEC-004: Shifted customer role to 'customer' guard name to block cross-guard session hijack bugs
         $customer = Role::firstOrCreate([
             'name' => 'customer',
-            'guard_name' => 'web',
+            'guard_name' => 'customer',
         ]);
-
-        /*
-        |--------------------------------------------------------------------------
-        | Assign Permissions
-        |--------------------------------------------------------------------------
-        */
 
         $owner->syncPermissions([
             'manage services',
@@ -83,12 +86,14 @@ class RolesAndPermissionsSeeder extends Seeder
             'manage appointments',
         ]);
 
+        // Enforce customer specific permissions over its standalone guard loop
         $customer->syncPermissions([
-            'manage appointments',
+            'manage customer appointments',
         ]);
 
+        // Super Admin receives all web context operations
         $superAdmin->syncPermissions(
-            Permission::pluck('name')->toArray()
+            Permission::where('guard_name', 'web')->pluck('name')->toArray()
         );
     }
 }

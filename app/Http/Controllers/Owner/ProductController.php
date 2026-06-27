@@ -5,33 +5,38 @@ namespace App\Http\Controllers\Owner;
 use App\Http\Controllers\Controller;
 use App\Models\InventoryTransaction;
 use App\Models\Product;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
 class ProductController extends Controller
 {
-    // Saare products
+    /**
+     * Retrieve all products.
+     *
+     * @return JsonResponse
+     */
     public function index()
     {
-      $products = Product::where(
-    'tenant_id',
-    app('currentTenant')->id
-)
-->where('is_active', true)
-->orderBy('name')
-->paginate(20);
+        $products = Product::where(
+            'tenant_id',
+            app('currentTenant')->id
+        )
+            ->where('is_active', true)
+            ->orderBy('name')
+            ->paginate(20);
 
-$products->getCollection()->transform(function ($product) {
-    return [
-        'id' => $product->id,
-        'name' => $product->name,
-        'category' => $product->category,
-        'price' => $product->price,
-        'quantity' => $product->quantity,
-        'low_stock_threshold' => $product->low_stock_threshold,
-        'is_low_stock' => $product->isLowStock(),
-    ];
-});
+        $products->getCollection()->transform(function ($product) {
+            return [
+                'id' => $product->id,
+                'name' => $product->name,
+                'category' => $product->category,
+                'price' => $product->price,
+                'quantity' => $product->quantity,
+                'low_stock_threshold' => $product->low_stock_threshold,
+                'is_low_stock' => $product->isLowStock(),
+            ];
+        });
 
         return response()->json([
             'message' => 'Products fetched successfully',
@@ -40,7 +45,11 @@ $products->getCollection()->transform(function ($product) {
         ]);
     }
 
-    // Naya product add karo
+    /**
+     * Store a new product.
+     *
+     * @return JsonResponse
+     */
     public function store(Request $request)
     {
         $request->validate([
@@ -53,16 +62,15 @@ $products->getCollection()->transform(function ($product) {
 
         $product = DB::transaction(function () use ($request) {
 
-           $product = Product::create([
-    'tenant_id' => app('currentTenant')->id,
-
-    'name' => $request->name,
-    'category' => $request->category,
-    'price' => $request->price,
-    'quantity' => $request->quantity,
-    'low_stock_threshold' => $request->low_stock_threshold ?? 5,
-    'is_active' => true,
-]);
+            $product = Product::create([
+                'tenant_id' => app('currentTenant')->id,
+                'name' => $request->name,
+                'category' => $request->category,
+                'price' => $request->price,
+                'quantity' => $request->quantity,
+                'low_stock_threshold' => $request->low_stock_threshold ?? 5,
+                'is_active' => true,
+            ]);
 
             if ($request->quantity > 0) {
                 InventoryTransaction::create([
@@ -83,7 +91,12 @@ $products->getCollection()->transform(function ($product) {
         ], 201);
     }
 
-    // Single product
+    /**
+     * Retrieve a specific product and its transaction history.
+     *
+     * @param  int  $id
+     * @return JsonResponse
+     */
     public function show($id)
     {
         $product = Product::where(
@@ -97,7 +110,7 @@ $products->getCollection()->transform(function ($product) {
             ], 404);
         }
 
-        // Product ki saari transactions
+        // Retrieve product transaction history
         $transactions = InventoryTransaction::where(
             'tenant_id',
             app('currentTenant')->id
@@ -113,7 +126,12 @@ $products->getCollection()->transform(function ($product) {
         ]);
     }
 
-    // Product update karo
+    /**
+     * Update an existing product.
+     *
+     * @param  int  $id
+     * @return JsonResponse
+     */
     public function update(Request $request, $id)
     {
         $product = Product::where(
@@ -144,7 +162,12 @@ $products->getCollection()->transform(function ($product) {
         ]);
     }
 
-    // Product delete karo
+    /**
+     * Remove (soft-delete) a product.
+     *
+     * @param  int  $id
+     * @return JsonResponse
+     */
     public function destroy($id)
     {
         $product = Product::where(
@@ -165,16 +188,20 @@ $products->getCollection()->transform(function ($product) {
         ]);
     }
 
-    // Low stock products — dashboard alert ke liye
+    /**
+     * Retrieve products that have reached low stock levels.
+     *
+     * @return JsonResponse
+     */
     public function lowStock()
     {
         $products = Product::where(
-    'tenant_id',
-    app('currentTenant')->id
-)
-->where('is_active', true)
-->whereRaw('quantity <= low_stock_threshold')
-->get();
+            'tenant_id',
+            app('currentTenant')->id
+        )
+            ->where('is_active', true)
+            ->whereRaw('quantity <= low_stock_threshold')
+            ->get();
 
         return response()->json([
             'message' => 'Low stock products',

@@ -13,15 +13,15 @@ return new class extends Migration
     {
         Schema::create('tenants', function (Blueprint $table) {
             $table->id();
-            $table->string('name');              // Parlour ka naam — "Meesu Cosmetics"
-            $table->string('slug')->unique();    // URL me use hoga — "meesu"
-            $table->string('email')->unique();   // Owner ka email
+            $table->string('name');             // Business name — e.g., "Meesu Cosmetics"
+            $table->string('slug')->unique();   // Slug for URL structure — e.g., "meesu"
+            $table->string('email')->unique();  // Owner contact email
             $table->string('phone');
             $table->text('address')->nullable();
-            $table->string('subdomain')->unique(); // "meesu" → meesu.app.com
-            $table->enum('plan', ['free', 'pro', 'enterprise'])->default('free');
+            $table->string('subdomain')->unique(); // Subdomain — e.g., meesu.app.com
+            $table->string('plan', 50)->default('free');
             $table->enum('status', ['active', 'inactive', 'suspended'])->default('active');
-            $table->json('settings')->nullable(); // Working hours, timezone etc.
+            $table->json('settings')->nullable(); // Stores working hours, timezone, etc.
             $table->timestamp('trial_ends_at')->nullable();
             $table->timestamps();
         });

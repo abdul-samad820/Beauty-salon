@@ -22,19 +22,32 @@ Route::prefix('v1')->group(function () {
 
     Route::prefix('auth')->group(function () {
 
-        Route::post('/register', [TenantRegisterController::class, 'register']);
-        Route::post('/login', [AuthController::class, 'login'])->middleware('throttle:5,1');
+        Route::post('/register', [TenantRegisterController::class, 'register'])
+            ->middleware('throttle:3,1');
+
+        Route::post('/login', [AuthController::class, 'login'])
+            ->middleware('throttle:5,1');
 
         Route::middleware('tenant')->post(
             '/customer/register',
             [CustomerAuthController::class, 'register']
-        );
+        )->middleware('throttle:3,1');
     });
 
-    Route::middleware(['tenant', 'auth:sanctum'])->group(function () {
+    /*
+    |--------------------------------------------------------------------------
+    | OWNER + CUSTOMER ROUTES
+    |--------------------------------------------------------------------------
+    */
+    Route::middleware(['tenant', 'auth:sanctum', 'throttle:60,1'])->group(function () {
 
         Route::post('/auth/logout', [AuthController::class, 'logout']);
 
+        /*
+        |--------------------------------------------------------------------------
+        | OWNER
+        |--------------------------------------------------------------------------
+        */
         Route::middleware(['role:owner'])
             ->prefix('owner')
             ->group(function () {
@@ -74,20 +87,47 @@ Route::prefix('v1')->group(function () {
                     [InventoryController::class, 'stockOut']
                 );
 
-                Route::get('/commissions', [CommissionController::class, 'index']);
-                Route::get('/commissions/staff-summary', [CommissionController::class, 'staffSummary']);
+                Route::get(
+                    '/commissions',
+                    [CommissionController::class, 'index']
+                );
+
+                Route::get(
+                    '/commissions/staff-summary',
+                    [CommissionController::class, 'staffSummary']
+                );
 
                 Route::patch(
                     '/commissions/{staffId}/mark-paid',
                     [CommissionController::class, 'markAsPaid']
                 );
 
-                Route::get('/analytics/summary', [AnalyticsController::class, 'summary']);
-                Route::get('/analytics/revenue', [AnalyticsController::class, 'revenue']);
-                Route::get('/analytics/services', [AnalyticsController::class, 'services']);
-                Route::get('/analytics/customers', [AnalyticsController::class, 'customers']);
+                Route::get(
+                    '/analytics/summary',
+                    [AnalyticsController::class, 'summary']
+                );
+
+                Route::get(
+                    '/analytics/revenue',
+                    [AnalyticsController::class, 'revenue']
+                );
+
+                Route::get(
+                    '/analytics/services',
+                    [AnalyticsController::class, 'services']
+                );
+
+                Route::get(
+                    '/analytics/customers',
+                    [AnalyticsController::class, 'customers']
+                );
             });
 
+        /*
+        |--------------------------------------------------------------------------
+        | CUSTOMER
+        |--------------------------------------------------------------------------
+        */
         Route::middleware(['role:customer'])
             ->prefix('customer')
             ->group(function () {
@@ -109,20 +149,23 @@ Route::prefix('v1')->group(function () {
                     [CustomerAppointmentController::class, 'cancel']
                 );
             });
-
-        Route::middleware(['role:super_admin'])
-            ->prefix('admin')
-            ->group(function () {
-
-                Route::get('/tenants', function () {
-
-                    return response()->json([
-                        'message' => 'All tenants',
-                        'data' => Tenant::all(),
-                    ]);
-
-                });
-            });
     });
 
+    /*
+    |--------------------------------------------------------------------------
+    | SUPER ADMIN
+    |s--------------------------------------------------------------------------
+    */
+    Route::middleware(['auth:sanctum', 'role:superadmin'])
+        ->prefix('admin')
+        ->group(function () {
+
+            Route::get('/tenants', function () {
+
+                return response()->json([
+                    'message' => 'All tenants',
+                    'data' => Tenant::paginate(50),
+                ]);
+            });
+        });
 });

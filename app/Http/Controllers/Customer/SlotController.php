@@ -22,36 +22,35 @@ class SlotController extends Controller
                 Rule::exists('staff', 'id')
                     ->where(
                         'tenant_id',
-                        app('currentTenant')->id
+                        app('customerTenant')->id
                     ),
             ],
         ]);
 
         $date = Carbon::parse($request->date);
-        $dayName = strtolower($date->format('D')); // "mon", "tue" etc.
+        $dayName = strtolower($date->format('D')); // e.g., "mon", "tue"
         $service = Service::where(
             'tenant_id',
-            app('currentTenant')->id
+            app('customerTenant')->id
         )->findOrFail($request->service_id);
 
-        // Staff select kiya hai? Warna tenant ke sab available staff
+        // Retrieve available staff list
         if ($request->staff_id) {
-            // Ye nai line
             $staffList = Staff::with('user')
-                ->where('tenant_id', app('currentTenant')->id)
+                ->where('tenant_id', app('customerTenant')->id)
                 ->where('id', $request->staff_id)
                 ->where('is_available', true)
                 ->get();
         } else {
-
             $staffList = Staff::with('user')
-                ->where('tenant_id', app('currentTenant')->id)
-                ->where('is_available', true)->get();
+                ->where('tenant_id', app('customerTenant')->id)
+                ->where('is_available', true)
+                ->get();
         }
 
         if ($staffList->isEmpty()) {
             return response()->json([
-                'message' => 'Koi staff available nahi is date pe',
+                'message' => 'No staff available for this date.',
                 'slots' => [],
             ]);
         }
@@ -59,29 +58,28 @@ class SlotController extends Controller
         $availableSlots = [];
 
         foreach ($staffList as $staff) {
-
-            // Staff ke working hours check karo
+            // Check staff working hours
             $workingHours = $staff->working_hours;
 
-            // Us din staff kaam karta hai?
+            // Check if staff is off on this day
             if (empty($workingHours[$dayName])) {
-                continue; // Is staff ka us din off hai
+                continue;
             }
 
-            // Working hours parse karo — "09:00-20:00"
+            // Parse working hours format "09:00-20:00"
             [$startTime, $endTime] = explode('-', $workingHours[$dayName]);
 
             $slotStart = Carbon::parse($request->date.' '.$startTime);
             $slotEnd = Carbon::parse($request->date.' '.$endTime);
-            $slotDuration = $service->duration_minutes; // Service kitne minute ki hai
+            $slotDuration = $service->duration_minutes;
 
-            // Us staff ki us din ki saari bookings
+            // Retrieve all existing appointments for the staff on this day
             $bookedAppointments = Appointment::where('staff_id', $staff->id)
                 ->where('appointment_date', $request->date)
                 ->whereNotIn('status', ['cancelled'])
                 ->get(['start_time', 'end_time']);
 
-            // Slots generate karo — har slot service duration ka hoga
+            // Generate time slots based on service duration
             $slots = [];
             $current = $slotStart->copy();
 
@@ -89,22 +87,22 @@ class SlotController extends Controller
                 $thisSlotStart = $current->copy();
                 $thisSlotEnd = $current->copy()->addMinutes($slotDuration);
 
-                // Ye slot kisi booked appointment se overlap karta hai?
+                // Check for overlapping appointments
                 $isBooked = $bookedAppointments->contains(function ($appt) use ($thisSlotStart, $thisSlotEnd) {
                     $apptStart = Carbon::parse($appt->start_time);
                     $apptEnd = Carbon::parse($appt->end_time);
 
-                    // Overlap check karo
                     return $thisSlotStart->lt($apptEnd) && $thisSlotEnd->gt($apptStart);
                 });
+                $isPast = $date->isToday() && $thisSlotStart->lt(Carbon::now(config('app.timezone')));
 
                 $slots[] = [
-                    'start_time' => $thisSlotStart->format('H:i'),
-                    'end_time' => $thisSlotEnd->format('H:i'),
-                    'available' => ! $isBooked,
+                    'start' => $thisSlotStart->format('H:i'),
+                    'end' => $thisSlotEnd->format('H:i'),
+                    'display' => $thisSlotStart->format('h:i A'),
+                    'available' => ! $isBooked && ! $isPast,
                 ];
 
-                // Agli slot pe jao
                 $current->addMinutes($slotDuration);
             }
 
@@ -116,7 +114,7 @@ class SlotController extends Controller
         }
 
         return response()->json([
-            'message' => 'Slots fetched successfully',
+            'message' => 'Slots fetched successfully.',
             'date' => $request->date,
             'service' => $service->name,
             'duration' => $service->duration_minutes.' minutes',

@@ -8,22 +8,26 @@ use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
+    /**
+     * Seed the application's database.
+     */
     public function run(): void
     {
-        // Pehle roles/permissions seed karo
+        // Seed roles and permissions first
         $this->call(RolesAndPermissionsSeeder::class);
 
-        // Super Admin user banao
+        // Create the Super Admin user
         $superAdmin = User::firstOrCreate(
             ['email' => 'superadmin@lumiere.app'],
             [
-                'tenant_id' => null,           // SA ka koi tenant nahi
+                'tenant_id' => null,                          // Super Admins are not assigned to a tenant
                 'name' => 'Super Admin',
-                'password' => Hash::make('lumiere@2026'),  // Production me .env se lo
+                'password' => Hash::make(env('SUPERADMIN_PASSWORD') ?? throw new \RuntimeException('SUPERADMIN_PASSWORD must be set in .env before seeding')),
                 'phone' => null,
                 'is_active' => true,
             ]
         );
-        $superAdmin->assignRole('super_admin');
+
+        $superAdmin->assignRole('superadmin');
     }
 }

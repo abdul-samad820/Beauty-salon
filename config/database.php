@@ -179,6 +179,10 @@ return [
             'backoff_cap' => env('REDIS_BACKOFF_CAP', 1000),
         ],
 
+        'dump' => [
+            'dump_binary_path' => 'C:\xampp\mysql\bin',
+        ],
+
     ],
 
 ];

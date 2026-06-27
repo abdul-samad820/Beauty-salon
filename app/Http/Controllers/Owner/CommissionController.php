@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Models\AuditLog;
 use App\Models\Commission;
 use App\Models\Staff;
 use Carbon\Carbon;
@@ -10,93 +11,74 @@ use Illuminate\Http\Request;
 
 class CommissionController extends Controller
 {
-    // Saari commissions — filter ke saath
+    /**
+     * Fetch all commissions with server-side filters and structural pagination ledger.
+     */
     public function index(Request $request)
     {
-
         $currentTenant = app('currentTenant');
 
         $query = Commission::with([
             'staff.user',
             'appointment.service',
-        ])->where(
-            'tenant_id',
-            $currentTenant->id
-        );
+        ])->where('tenant_id', $currentTenant->id);
 
-        // Month filter — optional
-        if ($request->has('month')) {
+        if ($request->filled('month')) {
             $query->whereMonth('created_at', $request->month);
         }
 
-        // Year filter — optional
-        if ($request->has('year')) {
+        if ($request->filled('year')) {
             $query->whereYear('created_at', $request->year);
         }
 
-        // Staff filter — optional
-        if ($request->has('staff_id')) {
+        if ($request->filled('staff_id')) {
             $query->where('staff_id', $request->staff_id);
         }
 
-        // Status filter — optional
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
         $commissions = $query->orderBy('created_at', 'desc')->paginate(20);
-
-        // Total commission amount
-        $totalAmount = $commissions->sum('commission_amount');
+        $totalAmount = $query->sum('commission_amount'); // Aggregate over total filtered builder instance context directly
 
         return response()->json([
-            'message' => 'Commissions fetched successfully',
+            'message' => 'Commissions fetched successfully.',
             'total_amount' => '₹'.number_format($totalAmount, 2),
-            'total_count' => $commissions->count(),
+            'total_count' => $commissions->total(),
             'data' => $commissions,
         ]);
     }
 
-    // Staff wise monthly summary
+    /**
+     * Optimized Staff Payout Aggregation Matrix resolving previous N+1 query vulnerability loops.
+     */
     public function staffSummary(Request $request)
     {
+        $tenantId = app('currentTenant')->id;
         $month = $request->month ?? Carbon::now()->month;
         $year = $request->year ?? Carbon::now()->year;
 
-        $staff = Staff::with('user')
-            ->where(
-                'tenant_id',
-                app('currentTenant')->id
-            )
-            ->get();
+        $staff = Staff::with('user')->where('tenant_id', $tenantId)->get();
 
-        $summary = $staff->map(function ($member) use ($month, $year) {
+        // FIXED N+1 Query: Fetch all matching month records in single grouped memory buffer array map execution
+        $monthlyCommissions = Commission::where('tenant_id', $tenantId)
+            ->whereMonth('created_at', $month)
+            ->whereYear('created_at', $year)
+            ->get()
+            ->groupBy('staff_id');
 
-            // Is staff ki is month ki commissions
-            $commissions = Commission::where(
-                'tenant_id',
-                app('currentTenant')->id
-            )
-                ->where(
-                    'staff_id',
-                    $member->id
-                )
-                ->whereMonth('created_at', $month)
-                ->whereYear('created_at', $year)
-                ->get();
+        $summary = $staff->map(function ($member) use ($monthlyCommissions) {
+            $comms = $monthlyCommissions->get($member->id, collect());
 
-            $totalEarned = $commissions->sum('commission_amount');
-            $pendingAmount = $commissions
-                ->where('status', 'pending')
-                ->sum('commission_amount');
-            $paidAmount = $commissions
-                ->where('status', 'paid')
-                ->sum('commission_amount');
+            $totalEarned = $comms->sum('commission_amount');
+            $pendingAmount = $comms->where('status', 'pending')->sum('commission_amount');
+            $paidAmount = $comms->where('status', 'paid')->sum('commission_amount');
 
             return [
                 'staff_id' => $member->id,
-                'staff_name' => $member->user->name,
-                'total_services' => $commissions->count(),
+                'staff_name' => $member->user->name ?? 'Unknown',
+                'total_services' => $comms->count(),
                 'total_earned' => '₹'.number_format($totalEarned, 2),
                 'pending_payout' => '₹'.number_format($pendingAmount, 2),
                 'paid_payout' => '₹'.number_format($paidAmount, 2),
@@ -105,26 +87,34 @@ class CommissionController extends Controller
         });
 
         return response()->json([
-            'message' => 'Staff commission summary',
+            'message' => 'Staff commission summary fetched successfully.',
             'month' => Carbon::create($year, $month)->format('F Y'),
             'data' => $summary,
         ]);
     }
 
-    // Commission pay kar do — pending → paid
+    /**
+     * Secure status alteration pipeline guarding resource enumeration blocks.
+     */
     public function markAsPaid(Request $request, $staffId)
     {
+        $tenantId = app('currentTenant')->id;
         $month = $request->month ?? Carbon::now()->month;
         $year = $request->year ?? Carbon::now()->year;
 
-        $commissions = Commission::where(
-            'tenant_id',
-            app('currentTenant')->id
-        )
-            ->where(
-                'staff_id',
-                $staffId
-            )
+        // FIXED SEC-013: Immediate input validation checkpoint preventing enumeration and path scanning probes
+        $staff = Staff::with('user')
+            ->where('tenant_id', $tenantId)
+            ->find($staffId);
+
+        if (! $staff) {
+            return response()->json([
+                'message' => 'Staff member not found or access unauthorized.',
+            ], 404);
+        }
+
+        $commissions = Commission::where('tenant_id', $tenantId)
+            ->where('staff_id', $staff->id)
             ->where('status', 'pending')
             ->whereMonth('created_at', $month)
             ->whereYear('created_at', $year)
@@ -132,35 +122,36 @@ class CommissionController extends Controller
 
         if ($commissions->isEmpty()) {
             return response()->json([
-                'message' => 'Koi pending commission nahi hai.',
-            ], 404);
+                'message' => 'No pending commissions found for this period.',
+            ], 422);
         }
 
         $totalPaid = $commissions->sum('commission_amount');
 
-        // Sab pending → paid karo
-        Commission::where(
-            'tenant_id',
-            app('currentTenant')->id
-        )
-            ->where(
-                'staff_id',
-                $staffId
-            )
+        Commission::where('tenant_id', $tenantId)
+            ->where('staff_id', $staff->id)
             ->where('status', 'pending')
             ->whereMonth('created_at', $month)
             ->whereYear('created_at', $year)
             ->update(['status' => 'paid']);
 
-        $staff = Staff::with('user')
-            ->where(
-                'tenant_id',
-                app('currentTenant')->id
-            )
-            ->findOrFail($staffId);
+        AuditLog::record(
+            'commission.marked_paid',
+            Staff::class,
+            $staff->id,
+            [
+                'staff_name' => $staff->user->name,
+                'month' => $month,
+                'year' => $year,
+                'total_paid' => $totalPaid,
+                'commission_count' => $commissions->count(),
+            ],
+            $tenantId,
+            'commission'
+        );
 
         return response()->json([
-            'message' => 'Commission marked as paid',
+            'message' => 'Commission payout marked as paid.',
             'staff_name' => $staff->user->name,
             'month' => Carbon::create($year, $month)->format('F Y'),
             'total_paid' => '₹'.number_format($totalPaid, 2),

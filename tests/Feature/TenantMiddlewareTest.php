@@ -6,65 +6,65 @@ use Tests\TestCase;
 
 /**
  * TENANT MIDDLEWARE TESTS
- * X-Tenant header validation, inactive tenant, wrong tenant access
+ * Covers X-Tenant header validation, inactive tenant handling, and unauthorized tenant access.
  */
 class TenantMiddlewareTest extends TestCase
 {
     // ──────────────────────────────────────────────
-    // TEST 33: X-Tenant header nahi bheja toh 400
+    // TEST 33: Verify 400 error when X-Tenant header is missing
     // ──────────────────────────────────────────────
     public function test_missing_x_tenant_header_returns_400(): void
     {
         $tenant = $this->createTenant();
-        $owner  = $this->createOwner($tenant);
-        $token  = $owner->createToken('test')->plainTextToken;
+        $owner = $this->createOwner($tenant);
+        $token = $owner->createToken('test')->plainTextToken;
 
         $response = $this->getJson('/api/v1/owner/services', [
             'Authorization' => "Bearer $token",
-            'Accept'        => 'application/json',
-            // X-Tenant missing!
+            'Accept' => 'application/json',
+            // X-Tenant header is intentionally missing
         ]);
 
         $response->assertStatus(400)
-                 ->assertJsonFragment(['message' => 'Tenant identifier missing. X-Tenant header required.']);
+            ->assertJsonFragment(['message' => 'Tenant identifier missing. X-Tenant header is required.']);
     }
 
     // ──────────────────────────────────────────────
-    // TEST 34: Galat/non-existent tenant slug pe 404
+    // TEST 34: Verify 404 error for invalid or non-existent tenant slug
     // ──────────────────────────────────────────────
     public function test_invalid_tenant_slug_returns_404(): void
     {
         $tenant = $this->createTenant();
-        $owner  = $this->createOwner($tenant);
-        $token  = $owner->createToken('test')->plainTextToken;
+        $owner = $this->createOwner($tenant);
+        $token = $owner->createToken('test')->plainTextToken;
 
         $response = $this->getJson('/api/v1/owner/services', [
             'Authorization' => "Bearer $token",
-            'X-Tenant'      => 'non-existent-salon',
-            'Accept'        => 'application/json',
+            'X-Tenant' => 'non-existent-salon',
+            'Accept' => 'application/json',
         ]);
 
         $response->assertStatus(404)
-                 ->assertJsonFragment(['message' => 'Tenant not found or inactive.']);
+            ->assertJsonFragment(['message' => 'Tenant not found or inactive.']);
     }
 
     // ──────────────────────────────────────────────
-    // TEST 35: Suspended tenant pe 404
+    // TEST 35: Verify 404 error for suspended tenants
     // ──────────────────────────────────────────────
     public function test_suspended_tenant_returns_404(): void
     {
         $tenant = $this->createTenant([
-            'slug'      => 'suspended-salon',
+            'slug' => 'suspended-salon',
             'subdomain' => 'suspended-salon',
-            'status'    => 'suspended', // suspended tenant
+            'status' => 'suspended',
         ]);
         $owner = $this->createOwner($tenant);
         $token = $owner->createToken('test')->plainTextToken;
 
         $response = $this->getJson('/api/v1/owner/services', [
             'Authorization' => "Bearer $token",
-            'X-Tenant'      => 'suspended-salon',
-            'Accept'        => 'application/json',
+            'X-Tenant' => 'suspended-salon',
+            'Accept' => 'application/json',
         ]);
 
         $response->assertStatus(404);

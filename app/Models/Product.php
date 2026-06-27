@@ -2,34 +2,34 @@
 
 namespace App\Models;
 
+use App\Traits\BelongsToTenant;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class Product extends Model
 {
-    use HasFactory;
+    use BelongsToTenant , HasFactory , SoftDeletes;
 
     protected $fillable = [
         'tenant_id',
         'name',
         'category',
         'price',
+        'cost_price',
         'quantity',
         'low_stock_threshold',
         'is_active',
+        'image',
     ];
 
     protected $casts = [
         'is_active' => 'boolean',
         'price' => 'decimal:2',
+        'cost_price' => 'decimal:2',
     ];
 
     // ── Relationships ──────────────────────────────
-
-    public function tenant()
-    {
-        return $this->belongsTo(Tenant::class);
-    }
 
     public function transactions()
     {
@@ -40,7 +40,9 @@ class Product extends Model
 
     public function isLowStock(): bool
     {
-        return $this->quantity <= $this->low_stock_threshold;
+        return $this->low_stock_threshold > 0
+    && $this->quantity <= $this->low_stock_threshold;
+
     }
 
     public function getStockPercentAttribute(): int

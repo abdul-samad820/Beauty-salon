@@ -2,44 +2,34 @@
 
 use App\Jobs\ReminderJob;
 use App\Models\Appointment;
+use App\Models\AuditLog;
+use App\Models\Subscription;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schedule;
 
-/*
-|----------------------------------------------------------
-| SCHEDULER — Har 15 minute me chalega
-| Upcoming appointments check karega
-| Jo 2 ghante baad hain unhe reminder bhejega
-|----------------------------------------------------------
-*/
 Schedule::call(function () {
 
-    Log::info('Scheduler chala — '.now()->format('d M Y H:i'));
+    Log::info('Scheduler executed — '.now()->format('d M Y H:i'));
 
-    // 2 ghante baad ka time nikalo
+    // Define the time window (2 hours from now)
     $from = Carbon::now()->addHours(2)->format('H:i');
     $to = Carbon::now()->addHours(2)->addMinutes(15)->format('H:i');
     $today = Carbon::today()->toDateString();
 
     Log::info("Checking slots between {$from} and {$to}");
 
-    /*
-    | Aaj ke appointments dhundo jo:
-    | 1. Abhi se 2 ghante baad hain
-    | 2. Cancelled nahi hain
-    | 3. Reminder abhi tak nahi gaya
-    */
-    $appointments = Appointment::with(['customer', 'service', 'staff.user'])
+    $appointments = Appointment::withoutGlobalScopes()
+        ->with(['customer', 'service', 'staff.user'])
         ->whereDate('appointment_date', $today)
         ->whereBetween('start_time', [$from, $to])
         ->whereNotIn('status', ['cancelled'])
         ->where('reminder_sent', false)
         ->get();
 
-    Log::info('Appointments mili: '.$appointments->count());
+    Log::info('Appointments found: '.$appointments->count());
 
-    // Har appointment ke liye job queue me daal do
+    // Dispatch a job for each appointment
     foreach ($appointments as $appointment) {
         ReminderJob::dispatch($appointment);
 
@@ -52,4 +42,42 @@ Schedule::call(function () {
 
 })->everyFifteenMinutes()
     ->name('send-appointment-reminders')
-    ->withoutOverlapping(); // Ek saath 2 baar na chale
+    ->withoutOverlapping(); // Prevents overlapping executions
+
+Schedule::command('backup:run')->daily()->at('02:00');
+
+Schedule::call(function () {
+
+    $expired = Subscription::withoutGlobalScopes()
+        ->where('status', 'active')
+        ->where('expires_at', '<', now())
+        ->get();
+
+    foreach ($expired as $subscription) {
+        $subscription->update(['status' => 'expired']);
+
+        Log::info('Subscription expired', [
+            'subscription_id' => $subscription->id,
+            'tenant_id' => $subscription->tenant_id,
+            'expired_at' => $subscription->expires_at,
+        ]);
+    }
+
+    Log::info('Subscription expiry check complete', [
+        'expired_count' => $expired->count(),
+        'checked_at' => now()->format('d M Y H:i'),
+    ]);
+
+})->daily()
+    ->name('expire-subscriptions')
+    ->withoutOverlapping();
+
+Schedule::call(function () {
+    AuditLog::where('is_read', true)
+        ->where('created_at', '<', now()->subDays(30))
+        ->delete();
+
+    Log::info('AuditLog cleanup complete — old read notifications purged');
+})->weekly()
+    ->name('prune-audit-logs')
+    ->withoutOverlapping();

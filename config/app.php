@@ -65,7 +65,8 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    // India ke liye hona chahiye
+    'timezone' => 'Asia/Kolkata',
 
     /*
     |--------------------------------------------------------------------------

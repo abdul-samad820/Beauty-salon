@@ -9,33 +9,37 @@ use Symfony\Component\HttpFoundation\Response;
 
 class TenantMiddleware
 {
+    /**
+     * Handle an incoming request.
+     */
     public function handle(Request $request, Closure $next): Response
     {
-        // Request me X-Tenant header dhundo
+        // Retrieve the tenant slug from the X-Tenant header
         $slug = $request->header('X-Tenant');
 
-        // Header nahi bheja? Error do
+        // Return error if the header is missing
         if (! $slug) {
             return response()->json([
-                'message' => 'Tenant identifier missing. X-Tenant header required.',
+                'message' => 'Tenant identifier missing. X-Tenant header is required.',
             ], 400);
         }
 
-        // Database me tenant dhundo
+        // Retrieve the active tenant from the database
         $tenant = Tenant::where('slug', $slug)
             ->where('status', 'active')
             ->first();
 
-        // Tenant mila nahi? 404
+        // Return 404 if the tenant is not found or is inactive
         if (! $tenant) {
             return response()->json([
                 'message' => 'Tenant not found or inactive.',
             ], 404);
         }
 
-        // Tenant mila — app container me store karo
-        // Ab poori app me currentTenant access ho sakta hai
+        // Bind the tenant to the application container for global access
         app()->instance('currentTenant', $tenant);
+
+        // Verify if the authenticated user has access to the requested tenant
         if (
             auth()->check() &&
             auth()->user()->tenant_id &&
@@ -45,7 +49,8 @@ class TenantMiddleware
                 'message' => 'Tenant access denied.',
             ], 403);
         }
-        // Request me bhi daal do — controllers me $request->tenant se milega
+
+        // Merge the tenant into the request object for easy controller access
         $request->merge(['tenant' => $tenant]);
 
         return $next($request);

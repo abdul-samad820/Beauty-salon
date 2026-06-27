@@ -9,50 +9,61 @@ use Illuminate\Http\Request;
 
 class AppointmentController extends Controller
 {
-    // Aaj ki saari bookings
+    /**
+     * Fetch all appointments scheduled for today based on tenant timezone.
+     */
     public function today()
     {
+        $tenant = app('currentTenant');
+
+        // FIXED SEC-021: Resolved system timezone using tenant settings layer to protect past/future offsets
+        $tenantTimezone = $tenant->settings['timezone'] ?? config('app.timezone', 'UTC');
+        $tenantToday = Carbon::now($tenantTimezone)->toDateString();
+
         $appointments = Appointment::with(['customer', 'staff.user', 'service'])
-            ->where(
-                'tenant_id',
-                app('currentTenant')->id
-            )
-            ->whereDate('appointment_date', Carbon::today())
+            ->where('tenant_id', $tenant->id) // Explicit defense-in-depth scoping rule
+            ->whereDate('appointment_date', $tenantToday)
             ->orderBy('start_time', 'asc')
             ->paginate(20);
 
         return response()->json([
-            'message' => 'Today\'s appointments',
-            'date' => Carbon::today()->format('d M Y'),
-            'total' => $appointments->count(),
-            'data' => $appointments,
+            'message' => 'Today\'s appointments fetched successfully.',
+            'date' => Carbon::parse($tenantToday)->format('d M Y'),
+            'total' => $appointments->total(), // FIXED: Replaced count() with total() to pull accurate pagination records
+            'data' => $appointments->items(),
+            'pagination' => [
+                'current_page' => $appointments->currentPage(),
+                'last_page' => $appointments->lastPage(),
+                'per_page' => $appointments->perPage(),
+            ],
         ]);
     }
 
-    // Saari upcoming bookings
+    /**
+     * Fetch all upcoming or filtered appointments under strict tenant scope.
+     */
     public function index(Request $request)
     {
+        $tenantId = app('currentTenant')->id;
+
         $query = Appointment::with([
             'customer',
             'staff.user',
             'service',
-        ])->where(
-            'tenant_id',
-            app('currentTenant')->id
-        );
+        ])->where('tenant_id', $tenantId);
 
         // Date filter — optional
-        if ($request->has('date')) {
+        if ($request->filled('date')) {
             $query->whereDate('appointment_date', $request->date);
         }
 
         // Status filter — optional
-        if ($request->has('status')) {
+        if ($request->filled('status')) {
             $query->where('status', $request->status);
         }
 
         // Staff filter — optional
-        if ($request->has('staff_id')) {
+        if ($request->filled('staff_id')) {
             $query->where('staff_id', $request->staff_id);
         }
 
@@ -61,39 +72,45 @@ class AppointmentController extends Controller
             ->get();
 
         return response()->json([
-            'message' => 'Appointments fetched successfully',
+            'message' => 'Appointments fetched successfully.',
             'total' => $appointments->count(),
             'data' => $appointments,
         ]);
     }
 
-    // Appointment status update karo
+    /**
+     * Secure status mutation pipeline protecting against cross-tenant IDOR access.
+     */
     public function updateStatus(Request $request, $id)
     {
+        $tenantId = app('currentTenant')->id;
+
         $request->validate([
-            'status' => 'required|in:confirmed,completed,cancelled',
+            'status' => 'required|in:confirmed,checked_in,completed,cancelled,no_show',
         ]);
 
+        // FIXED SEC-012: Injected strict explicit tenant ownership lookup to eliminate cross-tenant data alteration risks
         $appointment = Appointment::with(['customer', 'staff.user', 'service'])
+            ->where('tenant_id', $tenantId)
             ->find($id);
 
         if (! $appointment) {
             return response()->json([
-                'message' => 'Appointment not found',
+                'message' => 'Appointment not found or access unauthorized.',
             ], 404);
         }
 
-        // Cancelled appointment ko update nahi kar sakte
-       if (in_array($appointment->status, ['cancelled', 'completed'])) {
-    return response()->json([
-        'message' => 'Completed ya cancelled appointment ko update nahi kar sakte.'
-    ], 400);
-}
+        // State machine integrity check: terminal states must be locked
+        if (in_array($appointment->status, ['cancelled', 'completed', 'no_show'])) {
+            return response()->json([
+                'message' => 'Closed, cancelled, or no-show appointments cannot be modified.',
+            ], 400);
+        }
 
         $appointment->update(['status' => $request->status]);
 
         return response()->json([
-            'message' => 'Status updated to '.$request->status,
+            'message' => 'Appointment status updated to '.$request->status,
             'data' => $appointment,
         ]);
     }

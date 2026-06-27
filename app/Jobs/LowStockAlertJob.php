@@ -2,6 +2,8 @@
 
 namespace App\Jobs;
 
+use App\Mail\LowStockMail;
+use App\Models\AuditLog;
 use App\Models\Product;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
@@ -34,12 +36,34 @@ class LowStockAlertJob implements ShouldQueue
             'tenant_id' => $product->tenant_id,
         ]);
 
-        /*
-        | Production me yahan owner ko email jaayegi:
-        |
-        | Mail::to($product->tenant->email)
-        |     ->send(new LowStockMail($product));
-        */
+        $ownerEmail = $product->tenant->email ?? null;
+
+        if ($ownerEmail) {
+            try {
+                Mail::to($ownerEmail)->send(new LowStockMail($product));
+            } catch (\Exception $e) {
+                Log::error('LowStockAlertJob: Mail failed', [
+                    'tenant_id' => $product->tenant_id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+        } else {
+            Log::warning('LowStockAlertJob: No owner email found for tenant', [
+                'tenant_id' => $product->tenant_id,
+            ]);
+        }
+        AuditLog::record(
+            'stock.low',
+            Product::class,
+            $product->id,
+            [
+                'product_name' => $product->name,
+                'quantity' => $product->quantity,
+                'threshold' => $product->low_stock_threshold,
+            ],
+            $product->tenant_id,
+            'stock'
+        );
     }
 
     public function failed(\Throwable $exception): void

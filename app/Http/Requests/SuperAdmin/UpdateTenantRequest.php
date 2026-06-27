@@ -7,11 +7,17 @@ use Illuminate\Validation\Rule;
 
 class UpdateTenantRequest extends FormRequest
 {
+    /**
+     * Determine if the user is authorized to make this request.
+     */
     public function authorize(): bool
     {
-        return $this->user()?->hasRole('super_admin') ?? false;
+        return $this->user()?->hasRole('superadmin') ?? false;
     }
 
+    /**
+     * Get the validation rules that apply to the request.
+     */
     public function rules(): array
     {
         $tenantId = $this->route('tenant')?->id;
@@ -22,17 +28,21 @@ class UpdateTenantRequest extends FormRequest
                 'required', 'string', 'alpha_dash', 'max:50',
                 Rule::unique('tenants', 'subdomain')->ignore($tenantId),
             ],
-            'phone' => ['required', 'string', 'max:20'],
+            'phone' => ['nullable', 'string', 'max:20'],
             'address' => ['nullable', 'string', 'max:500'],
-            'plan' => ['required', Rule::in(['free', 'pro', 'enterprise'])],
+            'plan' => ['required', Rule::in(['free', 'basic', 'premium'])],
+            'status' => ['nullable', Rule::in(['active', 'inactive', 'suspended'])],
         ];
     }
 
+    /**
+     * Get the custom messages for validator errors.
+     */
     public function messages(): array
     {
         return [
-            'subdomain.unique' => 'Ye subdomain pehle se le liya gaya hai.',
-            'subdomain.alpha_dash' => 'Subdomain mein sirf letters, numbers aur hyphens allowed hain.',
+            'subdomain.unique' => 'This subdomain has already been taken.',
+            'subdomain.alpha_dash' => 'The subdomain may only contain letters, numbers, dashes, and underscores.',
         ];
     }
 }
