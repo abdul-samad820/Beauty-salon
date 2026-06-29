@@ -32,23 +32,16 @@ class AppointmentService
             $conflict = Appointment::lockForUpdate()
                 ->where('tenant_id', $data['tenant_id'])
                 ->where('staff_id', $data['staff_id'])
-                ->whereDate(
-                    'appointment_date',
-                    $data['appointment_date']
-                )
+                ->whereDate('appointment_date', $data['appointment_date'])
                 ->whereNotIn('status', ['cancelled'])
+    // Unpaid razorpay appointments slot block nahi karein
+                ->where(function ($q) {
+                    $q->where('payment_method', '!=', 'razorpay')
+                        ->orWhere('payment_status', 'paid');
+                })
                 ->where(function ($q) use ($data, $endTime) {
-
-                    $q->where(
-                        'start_time',
-                        '<',
-                        $endTime->format('H:i')
-                    )
-                        ->where(
-                            'end_time',
-                            '>',
-                            $data['start_time']
-                        );
+                    $q->where('start_time', '<', $endTime->format('H:i'))
+                        ->where('end_time', '>', $data['start_time']);
                 })
                 ->exists();
 
@@ -59,9 +52,9 @@ class AppointmentService
             }
 
             $subscriptionActive = Subscription::where('tenant_id', $data['tenant_id'])
-                            ->whereIn('status', ['active', 'trial'])
-                            ->where('expires_at', '>', now())
-                            ->exists();
+                ->whereIn('status', ['active', 'trial'])
+                ->where('expires_at', '>', now())
+                ->exists();
 
             if (! $subscriptionActive) {
                 throw new \RuntimeException(

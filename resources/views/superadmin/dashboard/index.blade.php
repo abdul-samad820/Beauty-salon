@@ -306,7 +306,7 @@
         // ==========================================
         // MAIN GROWTH CHART
         // ==========================================
-        const growthRaw = @json($monthlyGrowth ? ? []);
+        const growthRaw = @json($monthlyGrowth ?? []);
         const growthLabels = Object.keys(growthRaw).length > 0 ? Object.keys(growthRaw) : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
         const growthValues = Object.values(growthRaw).length > 0 ? Object.values(growthRaw) : [0, 0, 0, 0, 0, 0];
 
@@ -371,7 +371,7 @@
         // ==========================================
         // PLAN DISTRIBUTION CHART
         // ==========================================
-        const planRaw = @json($planDistribution ? ? []);
+        const planRaw = @json($planDistribution ?? []);
         const planLabels = Object.keys(planRaw).length > 0 ? Object.keys(planRaw).map(p => p.charAt(0).toUpperCase() + p.slice(1)) : ['Free', 'Basic', 'Premium'];
         const planValues = Object.values(planRaw).length > 0 ? Object.values(planRaw) : [1, 1, 1];
 

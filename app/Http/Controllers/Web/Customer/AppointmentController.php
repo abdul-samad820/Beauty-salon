@@ -15,27 +15,40 @@ class AppointmentController extends Controller
     public function index(string $subdomain): View
     {
         $customerId = auth('customer')->id();
-
         $tenant = app('customerTenant');
         $tenantId = $tenant->id;
-
         $status = request('status', 'all');
 
-        // High-Performance Paginated Ledger with Eager Loading
-        $appointments = Appointment::with(['service', 'staff.user'])
-            ->where('tenant_id', $tenantId) // Explicit defense-in-depth scoping
+        // ── Paid ya Cash appointments list mein dikho ──────────────────────
+        // Unpaid razorpay appointments alag banner mein dikhenge
+        $appointments = Appointment::with(['service', 'staff.user', 'review'])
+            ->where('tenant_id', $tenantId)
             ->where('customer_id', $customerId)
+            ->where(function ($q) {
+                $q->where('payment_method', '!=', 'razorpay')
+                    ->orWhere('payment_status', 'paid');
+            })
             ->when($status !== 'all', fn ($q) => $q->where('status', $status))
             ->orderBy('appointment_date', 'desc')
             ->orderBy('start_time', 'desc')
             ->paginate(10);
 
-        // Optimized Single Database Multi-Aggregation Aggregator
-        $statsRaw = Appointment::where('tenant_id', $tenantId) // Explicit check injected
+        // ── Unpaid razorpay appointments — banner ke liye alag query ───────
+        $unpaidAppointments = Appointment::with(['service'])
+            ->where('tenant_id', $tenantId)
+            ->where('customer_id', $customerId)
+            ->where('payment_method', 'razorpay')
+            ->where('payment_status', '!=', 'paid')
+            ->whereNotIn('status', ['cancelled'])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        // ── Stats ───────────────────────────────────────────────────────────
+        $statsRaw = Appointment::where('tenant_id', $tenantId)
             ->where('customer_id', $customerId)
             ->select(
                 DB::raw('COUNT(*) as total'),
-                DB::raw("SUM(CASE WHEN appointment_date >= CURRENT_DATE AND status NOT IN ('cancelled', 'completed') THEN 1 ELSE 0 END) as upcoming"),
+                DB::raw("SUM(CASE WHEN appointment_date >= CURRENT_DATE AND status NOT IN ('cancelled','completed') THEN 1 ELSE 0 END) as upcoming"),
                 DB::raw("SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed"),
                 DB::raw("SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled"),
                 DB::raw("SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending")
@@ -51,7 +64,14 @@ class AppointmentController extends Controller
 
         $pendingCount = (int) ($statsRaw->pending ?? 0);
 
-        return view('customer.appointments.index', compact('appointments', 'stats', 'tenant', 'subdomain', 'pendingCount'));
+        return view('customer.appointments.index', compact(
+            'appointments',
+            'unpaidAppointments',
+            'stats',
+            'tenant',
+            'subdomain',
+            'pendingCount'
+        ));
     }
 
     public function cancel(Request $request, string $subdomain, int $id): RedirectResponse
@@ -61,7 +81,6 @@ class AppointmentController extends Controller
             ->where('customer_id', auth('customer')->id())
             ->findOrFail($id);
 
-        // Fail-Safe State Guard Rules Validation Block
         if ($appointment->status === 'completed') {
             return back()->with('error', 'Action Denied: Completed appointments cannot be cancelled.');
         }
@@ -74,7 +93,7 @@ class AppointmentController extends Controller
         if ($appointmentDate->isPast() && ! $appointmentDate->isToday()) {
             return back()->with('error', 'Action Denied: Past appointments cannot be modified or altered.');
         }
-        //  2-hour cancellation window enforce karo
+
         $appointmentDateTime = Carbon::parse(
             $appointment->appointment_date->format('Y-m-d').' '.$appointment->start_time
         );
@@ -82,7 +101,7 @@ class AppointmentController extends Controller
         if (Carbon::now()->diffInHours($appointmentDateTime, false) < 2) {
             return back()->with('error', 'Action Denied: Appointments cannot be cancelled within 2 hours of the scheduled time.');
         }
-        // Secure Mutation Execution Block
+
         $appointment->update(['status' => 'cancelled']);
 
         return back()->with('success', 'Success: Your appointment has been successfully cancelled.');

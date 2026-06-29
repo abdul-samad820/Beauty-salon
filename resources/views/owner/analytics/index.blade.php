@@ -309,7 +309,7 @@
         } = CHART_COLORS;
 
         /* Revenue trend line */
-        const revRaw = @json($analytics['daily_revenue'] ? ? []);
+        const revRaw = @json($analytics['daily_revenue'] ?? []);
         const revLabels = Object.keys(revRaw).length > 0 ? Object.keys(revRaw) : ['N/A'];
         const revValues = Object.values(revRaw).length > 0 ? Object.values(revRaw) : [0];
 
@@ -372,7 +372,7 @@
         }
 
         /* Status doughnut */
-        const statusData = @json($analytics['status_breakdown'] ? ? []);
+        const statusData = @json($analytics['status_breakdown'] ?? []);
         const statusLabels = Object.keys(statusData).length > 0 ? Object.keys(statusData).map(s => s.charAt(0).toUpperCase() + s.slice(1)) : ['No Data'];
         const statusValues = Object.values(statusData).length > 0 ? Object.values(statusData) : [1]; // 1 for empty grey circle
 

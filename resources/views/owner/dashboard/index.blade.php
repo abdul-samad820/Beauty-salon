@@ -372,8 +372,8 @@
         // ==========================================
         // MAIN CHARTS
         // ==========================================
-        const revRaw = @json($monthlyRevenue ? ? []);
-        const svcRaw = @json($topServices ? ? []);
+        const revRaw = @json($monthlyRevenue ?? []);
+        const svcRaw = @json($topServices ?? []);
 
         // Safe Mapping
         const revLabels = (Array.isArray(revRaw) && revRaw.length > 0) ? revRaw.map(r => r.month) : Object.keys(revRaw).length > 0 ? Object.keys(revRaw) : ['Jan', 'Feb', 'Mar', 'Apr', 'May'];

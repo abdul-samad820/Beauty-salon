@@ -229,7 +229,7 @@
             , borderWidth: 1
         };
 
-        const mRevRaw = @json($monthlyRevenue ? ? []);
+        const mRevRaw = @json($monthlyRevenue ?? []);
         const mRevLabels = Object.keys(mRevRaw).length > 0 ? Object.keys(mRevRaw) : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
         const mRevData = Object.values(mRevRaw).length > 0 ? Object.values(mRevRaw) : [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
 

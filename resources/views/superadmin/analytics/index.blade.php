@@ -416,8 +416,8 @@
     , };
 
     const statusKeys = Object.keys(statusData);
-    const statusLabels = statusKeys.map(k => STATUS_MAP[k] ? .label ? ? k);
-    const statusBg = statusKeys.map(k => (STATUS_MAP[k] ? .color ? ? CHART_COLORS.gold) + 'cc');
+    const statusLabels = statusKeys.map(k => STATUS_MAP[k] ? .label ?? k);
+    const statusBg = statusKeys.map(k => (STATUS_MAP[k] ? .color ?? CHART_COLORS.gold) + 'cc');
     const statusValues = statusKeys.map(k => statusData[k]);
 
     new Chart(document.getElementById('statusChart'), {

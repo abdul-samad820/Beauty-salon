@@ -12,9 +12,13 @@
             <i class="bi bi-credit-card"></i>
         </div>
         <h1 class="serif gold-text mb-2" style="font-size: var(--text-2xl); font-weight: 400;">Payment Pending</h1>
-        <p style="font-size: var(--text-base); color: var(--text-2); max-width: 400px; margin: 0 auto var(--space-5) auto;">
-            Your slot is reserved. Complete payment to confirm your appointment.
-        </p>
+       <p style="font-size: var(--text-base); color: var(--text-2); max-width: 400px; margin: 0 auto var(--space-3) auto;">
+    Your slot is reserved. Complete payment to confirm your appointment.
+</p>
+<div style="background:rgba(251,191,36,0.08); border:1px solid rgba(251,191,36,0.25); border-radius:8px; padding:0.75rem 1rem; margin: 0 auto var(--space-5) auto; max-width:400px; font-size:0.75rem; color:#fbbf24;">
+    <i class="bi bi-exclamation-triangle-fill" style="margin-right:6px;"></i>
+    Complete payment now. Unpaid bookings are not confirmed and the slot will not be held for you.
+</div>
         @else
         <div style="width: 72px; height: 72px; border-radius: 50%; background: var(--emerald-dim); color: var(--emerald); display: flex; align-items: center; justify-content: center; margin: 0 auto var(--space-4) auto; font-size: var(--text-3xl); box-shadow: 0 0 24px var(--emerald-dim);">
             <i class="bi bi-check2-circle"></i>

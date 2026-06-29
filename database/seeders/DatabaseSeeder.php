@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
         $superAdmin = User::firstOrCreate(
             ['email' => 'superadmin@lumiere.app'],
             [
-                'tenant_id' => null,                          // Super Admins are not assigned to a tenant
+                'tenant_id' => null,
                 'name' => 'Super Admin',
                 'password' => Hash::make(env('SUPERADMIN_PASSWORD') ?? throw new \RuntimeException('SUPERADMIN_PASSWORD must be set in .env before seeding')),
                 'phone' => null,
