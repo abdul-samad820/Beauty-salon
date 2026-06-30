@@ -13,25 +13,13 @@ use App\Models\Service;
 use App\Models\Staff;
 use App\Services\AppointmentService;
 use Carbon\Carbon;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
-use Illuminate\Validation\Rule;
 
-/**
- * HomeController
- *
- * Centralized customer engagement matrix orchestrating scheduling lookups and execution pipelines.
- */
 class HomeController extends Controller
 {
-    /**
-     * Public landing page — no authentication required.
-     * Displays tenant-specific landing page with dynamic information.
-     */
-    // Class ke andar, methods se pehle add karo
     public function __construct(
         private AppointmentService $appointmentService
     ) {}
@@ -83,6 +71,10 @@ class HomeController extends Controller
             $bookedSlots = Appointment::where('tenant_id', $tenant->id)
                 ->whereDate('appointment_date', $today)
                 ->whereNotIn('status', ['cancelled'])
+                ->where(function ($q) {
+                    $q->where('payment_method', '!=', 'razorpay')
+                        ->orWhere('payment_status', 'paid');
+                })
                 ->pluck('start_time')
                 ->toArray();
 
@@ -153,98 +145,21 @@ class HomeController extends Controller
             ->get();
 
         return view('customer.home.index', compact(
-            'tenant', 'services', 'staff', 'todayBookings', 'subdomain'
+            'tenant', 'services', 'staff', 'todayBookings', 'subdomain', 'tenantTodayDate'
         ));
     }
 
-    /**
-     * AJAX Endpoint compiling unreserved time slot allocation sequences.
-     */
-    public function slots(Request $request, $subdomain)
-    {
-        $tenant = app('customerTenant');
-
-        $request->validate([
-            'service_id' => ['required', Rule::exists('services', 'id')->where('tenant_id', $tenant->id)],
-            'date' => 'required|date|after_or_equal:today',
-            'staff_id' => ['nullable', Rule::exists('staff', 'id')->where('tenant_id', $tenant->id)],
-        ]);
-
-        $service = Service::where('tenant_id', $tenant->id)->where('is_active', true)->findOrFail($request->service_id);
-        $date = Carbon::parse($request->date);
-
-        $settings = $tenant->settings ?? [];
-        $openTime = $settings['open_time'] ?? '09:00';
-        $closeTime = $settings['close_time'] ?? '18:00';
-        $slotInterval = $service->duration_minutes;
-
-        if ($request->filled('staff_id')) {
-            $bookedTimes = Appointment::where('tenant_id', $tenant->id)
-                ->whereDate('appointment_date', $date)
-                ->where('staff_id', $request->staff_id)
-                ->whereNotIn('status', ['cancelled'])
-                ->pluck('start_time')
-                ->map(fn ($t) => substr($t, 0, 5)) // HH:MM:SS → HH:MM
-                ->flip()                            // O(1) lookup ke liye
-                ->toArray();
-
-            $eligibleStaffIds = null;
-            $busyCountPerSlot = null;
-        } else {
-            $eligibleStaffIds = Staff::where('tenant_id', $tenant->id)
-                ->where('is_available', true)
-                ->pluck('id');
-
-            $busyCountPerSlot = Appointment::where('tenant_id', $tenant->id)
-                ->whereDate('appointment_date', $date)
-                ->whereNotIn('status', ['cancelled'])
-                ->whereIn('staff_id', $eligibleStaffIds)
-                ->selectRaw('LEFT(start_time, 5) as slot, COUNT(DISTINCT staff_id) as busy_count')
-                ->groupBy('slot')
-                ->pluck('busy_count', 'slot')
-                ->toArray();
-
-            $bookedTimes = null;
-        }
-        // ───────────────────────────────────────────────────────────
-
-        $slots = [];
-        $current = Carbon::parse($date->format('Y-m-d').' '.$openTime);
-        $close = Carbon::parse($date->format('Y-m-d').' '.$closeTime);
-
-        while ($current->copy()->addMinutes($slotInterval)->lte($close)) {
-            $startTime = $current->format('H:i');
-            $endTime = $current->copy()->addMinutes($slotInterval)->format('H:i');
-
-            // In-memory check — 0 DB queries inside loop
-            if ($eligibleStaffIds === null) {
-                $isBooked = isset($bookedTimes[$startTime]);
-            } else {
-                $busyCount = $busyCountPerSlot[$startTime] ?? 0;
-                $isBooked = $eligibleStaffIds->isEmpty() || $busyCount >= $eligibleStaffIds->count();
-            }
-
-            if (! $isBooked) {
-                $slots[] = [
-                    'time' => $current->format('g:i A'),
-                    'value' => $startTime,
-                ];
-            }
-
-            $current->addMinutes($slotInterval);
-        }
-
-        return response()->json(['slots' => $slots]);
-    }
-
-    /**
-     * Enforce atomic reservation transactional writes, preventing double bookings.
-     */
     public function book(BookAppointmentRequest $request, $subdomain)
     {
         $tenant = app('customerTenant');
 
         $service = Service::where('tenant_id', $tenant->id)->where('is_active', true)->findOrFail($request->service_id);
+
+        if (empty($request->staff_id)) {
+            return back()->withInput()->withErrors([
+                'staff_id' => 'Please select a staff member to proceed.',
+            ]);
+        }
 
         try {
             $appointment = $this->appointmentService->create([
@@ -254,19 +169,33 @@ class HomeController extends Controller
                 'staff_id' => $request->staff_id,
                 'appointment_date' => $request->appointment_date,
                 'start_time' => $request->start_time,
-                'status' => 'pending',
+                'notes' => $request->notes,
+                'status' => $request->payment_method === 'razorpay' ? 'pending' : 'confirmed',
                 'payment_method' => $request->payment_method,
                 'payment_status' => $request->payment_method === 'razorpay' ? 'pending' : 'not_required',
             ]);
         } catch (\RuntimeException $e) {
-            $message = match ($e->getMessage()) {
+            $knownErrors = [
                 'STAFF_ALREADY_BOOKED' => 'The selected time slot has already been reserved. Please choose another slot.',
+                'STAFF_NOT_WORKING_THIS_DAY' => 'This staff member does not work on the selected day.',
+                'SALON_CLOSED_THIS_DAY' => 'The salon is closed on the selected day. Please choose another date.',
+                'SLOT_OUTSIDE_WORKING_HOURS' => 'The selected time is outside this staff member\'s working hours.',
+                'NO_STAFF_SELECTED' => 'Please select a staff member to proceed.',
                 'TENANT_SUBSCRIPTION_EXPIRED' => 'Online booking is currently unavailable. Please contact the salon directly.',
                 'PLAN_APPOINTMENT_LIMIT_REACHED' => 'This salon has reached its monthly booking limit. Please contact them directly.',
-                default => 'Booking failed. Please try again.',
-            };
+            ];
 
-            return back()->withInput()->withErrors(['start_time' => $message]);
+            if (isset($knownErrors[$e->getMessage()])) {
+                return back()->withInput()->withErrors(['start_time' => $knownErrors[$e->getMessage()]]);
+            }
+
+            Log::error('Unexpected booking exception', [
+                'message' => $e->getMessage(),
+                'tenant_id' => $tenant->id,
+                'customer_id' => Auth::guard('customer')->id(),
+            ]);
+
+            return back()->withInput()->withErrors(['start_time' => 'Booking failed due to an unexpected error. Please try again.']);
         }
 
         try {

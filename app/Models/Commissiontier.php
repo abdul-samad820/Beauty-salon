@@ -32,9 +32,11 @@ class CommissionTier extends Model
      * Find the matching tier for a given monthly revenue amount.
      * Returns the commission_percent, or null if no tier matches.
      */
-    public static function rateForStaff(int $staffId, float $monthlyRevenue): ?float
+    public static function rateForStaff(int $staffId, float $monthlyRevenue, int $tenantId): ?float
     {
-        $tier = static::where('staff_id', $staffId)
+        $tier = static::withoutGlobalScopes()
+            ->where('staff_id', $staffId)
+            ->where('tenant_id', $tenantId)
             ->where('min_revenue', '<=', $monthlyRevenue)
             ->where(function ($q) use ($monthlyRevenue) {
                 $q->whereNull('max_revenue')

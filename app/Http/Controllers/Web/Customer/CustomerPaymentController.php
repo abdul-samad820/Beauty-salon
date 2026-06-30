@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Web\Customer;
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Razorpay\Api\Api;
 use Razorpay\Api\Errors\SignatureVerificationError;
@@ -27,7 +28,6 @@ class CustomerPaymentController extends Controller
         $tenant = app('customerTenant');
         $customer = auth('customer')->user();
 
-        // Appointment validate karo — sirf is customer ka aur is tenant ka
         $appointment = Appointment::with('service')
             ->where('tenant_id', $tenant->id)
             ->where('customer_id', $customer->id)
@@ -37,7 +37,6 @@ class CustomerPaymentController extends Controller
 
         $amountInPaise = (int) ($appointment->amount * 100);
 
-        // Amount zero nahi honi chahiye
         if ($amountInPaise <= 0) {
             return response()->json([
                 'success' => false,
@@ -58,7 +57,6 @@ class CustomerPaymentController extends Controller
                 ],
             ]);
 
-            // Order ID save karo
             $appointment->razorpay_order_id = $order->id;
             $appointment->save();
 
@@ -126,20 +124,29 @@ class CustomerPaymentController extends Controller
                 ->with('error', 'Payment verification failed. Please contact support if amount was deducted.');
         }
 
-        // ── Duplicate Payment Guard ───────────────────────────────
-        if ($appointment->payment_status === 'paid') {
+        $alreadyPaid = false;
+
+        DB::transaction(function () use ($appointment, $request, &$alreadyPaid) {
+            $fresh = Appointment::lockForUpdate()->find($appointment->id);
+
+            if ($fresh->payment_status === 'paid') {
+                $alreadyPaid = true;
+
+                return;
+            }
+
+            $fresh->update([
+                'payment_status' => 'paid',
+                'razorpay_payment_id' => $request->razorpay_payment_id,
+                'razorpay_signature' => $request->razorpay_signature,
+                'status' => 'pending',
+            ]);
+        });
+
+        if ($alreadyPaid) {
             return redirect()->route('customer.appointments', $subdomain)
                 ->with('success', 'Payment already confirmed.');
         }
-
-        // ── Mark Payment Success ──────────────────────────────────
-        $appointment->update([
-            'payment_status' => 'paid',
-            'razorpay_payment_id' => $request->razorpay_payment_id,
-            'razorpay_signature' => hash('sha256', $request->razorpay_signature),
-
-            'status' => 'pending', // Owner confirm karega
-        ]);
 
         Log::info('Appointment payment successful', [
             'appointment_id' => $appointment->id,

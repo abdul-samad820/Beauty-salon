@@ -20,6 +20,22 @@ use Illuminate\Support\Facades\Log;
  */
 class AppointmentObserver
 {
+    public function created(Appointment $appointment): void
+    {
+        AuditLog::record(
+            'appointment.booked',
+            Appointment::class,
+            $appointment->id,
+            [
+                'customer_name' => $appointment->customer?->name,
+                'service_name' => $appointment->service?->name,
+                'staff_id' => $appointment->staff_id,
+            ],
+            $appointment->tenant_id,
+            'booking'
+        );
+    }
+
     public function updated(Appointment $appointment): void
     {
         // Operate exclusively on explicit state changes
@@ -64,24 +80,7 @@ class AppointmentObserver
             return;
         }
 
-        // AuditLog pehle — transaction se bahar, taaki commission skip hone par bhi log ho
-        AuditLog::record(
-            'appointment.completed',
-            Appointment::class,
-            $appointment->id,
-            [
-                'customer_name' => $appointment->customer?->name,
-                'service_name' => $appointment->service?->name,
-                'amount' => $appointment->amount,
-            ],
-            $appointment->tenant_id,
-            'booking'
-        );
-
-        // FIXED SEC-023: Wrapped entire pipeline execution inside an isolated database transaction block
         DB::transaction(function () use ($appointment) {
-
-            // Apply defensive pessimistic row locking over the parent appointment instance to drop race vectors
             $lockedAppointment = Appointment::where('id', $appointment->id)
                 ->lockForUpdate()
                 ->first();
@@ -89,17 +88,28 @@ class AppointmentObserver
             if (! $lockedAppointment) {
                 return;
             }
-
-            // FIXED SEC-023: Execute checking inside explicit atomic lock context to block double entries
             $alreadyExists = Commission::where('appointment_id', $lockedAppointment->id)
                 ->lockForUpdate()
                 ->exists();
 
             if (! $alreadyExists) {
                 $this->calculateCommission($lockedAppointment);
+                $this->deductInventory($lockedAppointment);
+
+                AuditLog::record(
+                    'appointment.completed',
+                    Appointment::class,
+                    $lockedAppointment->id,
+                    [
+                        'customer_name' => $lockedAppointment->customer?->name,
+                        'service_name' => $lockedAppointment->service?->name,
+                        'amount' => $lockedAppointment->amount,
+                    ],
+                    $lockedAppointment->tenant_id,
+                    'booking'
+                );
             }
 
-            $this->deductInventory($lockedAppointment);
         });
     }
 
@@ -118,21 +128,17 @@ class AppointmentObserver
             return;
         }
 
-        // FIXED SEC-022: Implemented strict business safety rule layer capping maximum commission threshold to 50%
-        // Tiered commission: check if this staff member has revenue-based tiers defined.
-        // If yes, calculate their earned revenue for the current calendar month (excluding
-        // this appointment — it's not yet in the commissions ledger) and pick the matching tier.
-        // If no tiers exist, fall back to the flat commission_percent on the Staff record.
-        $monthlyRevenue = Commission::where('staff_id', $staff->id)
+        $monthlyRevenue = Commission::withoutGlobalScopes()
+            ->where('staff_id', $staff->id)
+            ->where('tenant_id', $appointment->tenant_id)
             ->whereMonth('created_at', now()->month)
             ->whereYear('created_at', now()->year)
             ->where('status', '!=', 'pending') // only settled commissions count toward the tier threshold
             ->sum('service_price');
 
-        // Add this appointment's service price to determine which tier bracket applies.
         $monthlyRevenue += (float) $service->price;
 
-        $tieredRate = CommissionTier::rateForStaff($staff->id, (float) $monthlyRevenue);
+        $tieredRate = CommissionTier::rateForStaff($staff->id, (float) $monthlyRevenue, $appointment->tenant_id);
         $basePercent = $tieredRate ?? (float) $staff->commission_percent;
         $effectivePercent = min($basePercent, 50.0);
         $commissionAmount = ($service->price * $effectivePercent) / 100;

@@ -14,110 +14,158 @@ class SlotController extends Controller
 {
     public function index(Request $request)
     {
+        $tenant = app('customerTenant');
+        $tenantId = $tenant->id;
+
+        $tenantTz = $tenant->settings['timezone'] ?? config('app.timezone', 'UTC');
+        $tenantTodayDate = Carbon::now($tenantTz)->toDateString();
+
         $request->validate([
-            'date' => 'required|date|after_or_equal:today',
-            'service_id' => 'required|exists:services,id',
+            'date' => [
+                'required',
+                'date',
+                'after_or_equal:'.$tenantTodayDate,
+            ],
+            'service_id' => [
+                'required',
+
+                Rule::exists('services', 'id')->where(function ($query) use ($tenantId) {
+                    $query->where('tenant_id', $tenantId)
+                        ->where('is_active', true);
+                }),
+            ],
             'staff_id' => [
                 'nullable',
-                Rule::exists('staff', 'id')
-                    ->where(
-                        'tenant_id',
-                        app('customerTenant')->id
-                    ),
+                Rule::exists('staff', 'id')->where('tenant_id', $tenantId),
             ],
         ]);
 
-        $date = Carbon::parse($request->date);
-        $dayName = strtolower($date->format('D')); // e.g., "mon", "tue"
-        $service = Service::where(
-            'tenant_id',
-            app('customerTenant')->id
-        )->findOrFail($request->service_id);
+        $date = Carbon::parse($request->date, $tenantTz);
+        $dayName = strtolower($date->format('D')); // mon, tue, wed...
 
-        // Retrieve available staff list
-        if ($request->staff_id) {
-            $staffList = Staff::with('user')
-                ->where('tenant_id', app('customerTenant')->id)
-                ->where('id', $request->staff_id)
-                ->where('is_available', true)
-                ->get();
-        } else {
-            $staffList = Staff::with('user')
-                ->where('tenant_id', app('customerTenant')->id)
-                ->where('is_available', true)
-                ->get();
+        $tenantWorkingHours = $tenant->settings['working_hours'][$dayName] ?? null;
+
+        if (empty($tenantWorkingHours)) {
+            return response()->json([
+                'message' => 'The salon is closed on this day.',
+                'data' => [],
+            ]);
         }
+
+        [$tenantOpen, $tenantClose] = explode('-', $tenantWorkingHours);
+        $tenantOpenTime = Carbon::parse($date->format('Y-m-d').' '.$tenantOpen, $tenantTz);
+        $tenantCloseTime = Carbon::parse($date->format('Y-m-d').' '.$tenantClose, $tenantTz);
+
+        $service = Service::where('tenant_id', $tenantId)
+            ->where('is_active', true)
+            ->findOrFail($request->service_id);
+        $duration = $service->duration_minutes;
+
+        // ── Staff list ────────────────────────────────────────────────
+        $staffQuery = Staff::with('user')
+            ->where('tenant_id', $tenantId)
+            ->where('is_available', true);
+
+        if ($request->filled('staff_id')) {
+            $staffQuery->where('id', $request->staff_id);
+        }
+
+        $staffList = $staffQuery->get();
 
         if ($staffList->isEmpty()) {
             return response()->json([
                 'message' => 'No staff available for this date.',
-                'slots' => [],
+                'data' => [],
             ]);
         }
 
         $availableSlots = [];
 
         foreach ($staffList as $staff) {
-            // Check staff working hours
-            $workingHours = $staff->working_hours;
 
-            // Check if staff is off on this day
+            // ── Working hours check ───────────────────────────────────
+
+            $workingHours = $staff->working_hours ?? [];
+
+            // Staff is off on this day
             if (empty($workingHours[$dayName])) {
                 continue;
             }
 
-            // Parse working hours format "09:00-20:00"
-            [$startTime, $endTime] = explode('-', $workingHours[$dayName]);
+            [$workStart, $workEnd] = explode('-', $workingHours[$dayName]);
 
-            $slotStart = Carbon::parse($request->date.' '.$startTime);
-            $slotEnd = Carbon::parse($request->date.' '.$endTime);
-            $slotDuration = $service->duration_minutes;
+            $shiftStart = Carbon::parse($date->format('Y-m-d').' '.$workStart, $tenantTz);
+            $shiftEnd = Carbon::parse($date->format('Y-m-d').' '.$workEnd, $tenantTz);
 
-            // Retrieve all existing appointments for the staff on this day
-            $bookedAppointments = Appointment::where('staff_id', $staff->id)
-                ->where('appointment_date', $request->date)
-                ->whereNotIn('status', ['cancelled'])
-                ->get(['start_time', 'end_time']);
+            $shiftStart = $shiftStart->max($tenantOpenTime);
+            $shiftEnd = $shiftEnd->min($tenantCloseTime);
 
-            // Generate time slots based on service duration
-            $slots = [];
-            $current = $slotStart->copy();
-
-            while ($current->copy()->addMinutes($slotDuration)->lte($slotEnd)) {
-                $thisSlotStart = $current->copy();
-                $thisSlotEnd = $current->copy()->addMinutes($slotDuration);
-
-                // Check for overlapping appointments
-                $isBooked = $bookedAppointments->contains(function ($appt) use ($thisSlotStart, $thisSlotEnd) {
-                    $apptStart = Carbon::parse($appt->start_time);
-                    $apptEnd = Carbon::parse($appt->end_time);
-
-                    return $thisSlotStart->lt($apptEnd) && $thisSlotEnd->gt($apptStart);
-                });
-                $isPast = $date->isToday() && $thisSlotStart->lt(Carbon::now(config('app.timezone')));
-
-                $slots[] = [
-                    'start' => $thisSlotStart->format('H:i'),
-                    'end' => $thisSlotEnd->format('H:i'),
-                    'display' => $thisSlotStart->format('h:i A'),
-                    'available' => ! $isBooked && ! $isPast,
-                ];
-
-                $current->addMinutes($slotDuration);
+            if ($shiftStart->gte($shiftEnd)) {
+                continue;
             }
 
-            $availableSlots[] = [
-                'staff_id' => $staff->id,
-                'staff_name' => $staff->user->name,
-                'slots' => $slots,
-            ];
+            // ── Booked appointments fetch ─────────────────────────────
+
+            $bookedAppointments = Appointment::where('tenant_id', $tenantId)
+                ->where('staff_id', $staff->id)
+                ->whereDate('appointment_date', $date->toDateString())
+                ->whereNotIn('status', ['cancelled'])
+                ->where(function ($q) {
+                    $q->where('payment_method', '!=', 'razorpay')
+                        ->orWhere('payment_status', 'paid');
+                })
+                ->get(['start_time', 'end_time']);
+
+            // ── Slot generation ───────────────────────────────────────
+            $slots = [];
+            $current = $shiftStart->copy();
+
+            while ($current->copy()->addMinutes($duration)->lte($shiftEnd)) {
+
+                $thisSlotStart = $current->copy();
+                $thisSlotEnd = $current->copy()->addMinutes($duration);
+
+                // Past slot check — today ke liye
+
+                $isPast = $date->isToday()
+                    && $thisSlotStart->lt(Carbon::now($tenantTz));
+
+                if (! $isPast) {
+
+                    $isBooked = $bookedAppointments->contains(function ($appt) use ($thisSlotStart, $thisSlotEnd, $date, $tenantTz) {
+                        $apptStart = Carbon::parse($date->format('Y-m-d').' '.$appt->start_time, $tenantTz);
+                        $apptEnd = Carbon::parse($date->format('Y-m-d').' '.$appt->end_time, $tenantTz);
+
+                        return $thisSlotStart->lt($apptEnd) && $thisSlotEnd->gt($apptStart);
+                    });
+
+                    if (! $isBooked) {
+                        $slots[] = [
+                            'start' => $thisSlotStart->format('H:i'),
+                            'end' => $thisSlotEnd->format('H:i'),
+                            'display' => $thisSlotStart->format('h:i A'),
+                            'available' => true,
+                        ];
+                    }
+                }
+
+                $current->addMinutes($duration);
+            }
+
+            if (! empty($slots)) {
+                $availableSlots[] = [
+                    'staff_id' => $staff->id,
+                    'staff_name' => $staff->user->name,
+                    'slots' => $slots,
+                ];
+            }
         }
 
         return response()->json([
             'message' => 'Slots fetched successfully.',
             'date' => $request->date,
             'service' => $service->name,
-            'duration' => $service->duration_minutes.' minutes',
+            'duration' => $duration.' minutes',
             'data' => $availableSlots,
         ]);
     }

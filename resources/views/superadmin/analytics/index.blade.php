@@ -51,7 +51,6 @@
         color: var(--text-3);
     }
 
-    /* Custom Scroller for Table */
     .lux-scroller::-webkit-scrollbar {
         width: 5px;
         height: 5px;
@@ -385,7 +384,7 @@
         }
     });
 
-    // ✅ YEH DAALO — key-based approach, label aur color saath map hote hain
+    // Status chart — key-based approach, label aur color saath map hote hain
     const statusData = @json($bookingStatus);
 
     const STATUS_MAP = {
@@ -416,8 +415,13 @@
     , };
 
     const statusKeys = Object.keys(statusData);
-    const statusLabels = statusKeys.map(k => STATUS_MAP[k] ? .label ?? k);
-    const statusBg = statusKeys.map(k => (STATUS_MAP[k] ? .color ?? CHART_COLORS.gold) + 'cc');
+    const statusLabels = statusKeys.map(function(k) {
+        return (STATUS_MAP[k] && STATUS_MAP[k].label) ? STATUS_MAP[k].label : k;
+    });
+    const statusBg = statusKeys.map(function(k) {
+        var color = (STATUS_MAP[k] && STATUS_MAP[k].color) ? STATUS_MAP[k].color : CHART_COLORS.gold;
+        return color + 'cc';
+    });
     const statusValues = statusKeys.map(k => statusData[k]);
 
     new Chart(document.getElementById('statusChart'), {

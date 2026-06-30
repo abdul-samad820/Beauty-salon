@@ -20,7 +20,7 @@
     display: flex; align-items: center; gap: var(--space-3); flex-shrink: 0;
 }
 .logo-gem {
-    width: 34px; height: 34px; background: var(--gold-grad); border-radius: var(--r-md);
+    width: 34px; height: 34px; border-radius: var(--r-md);
     display: flex; align-items: center; justify-content: center;
     font-family: var(--ff-display); font-size: var(--text-md); font-weight: 500;
     color: #1a1400; flex-shrink: 0; box-shadow: 0 4px 14px rgba(201,169,110,0.2);

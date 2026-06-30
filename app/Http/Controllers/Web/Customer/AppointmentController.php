@@ -7,7 +7,6 @@ use App\Models\Appointment;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class AppointmentController extends Controller
@@ -18,9 +17,9 @@ class AppointmentController extends Controller
         $tenant = app('customerTenant');
         $tenantId = $tenant->id;
         $status = request('status', 'all');
+        $tenantTimezone = $tenant->settings['timezone'] ?? config('app.timezone', 'UTC');
+        $tenantToday = Carbon::now($tenantTimezone)->toDateString();
 
-        // ── Paid ya Cash appointments list mein dikho ──────────────────────
-        // Unpaid razorpay appointments alag banner mein dikhenge
         $appointments = Appointment::with(['service', 'staff.user', 'review'])
             ->where('tenant_id', $tenantId)
             ->where('customer_id', $customerId)
@@ -33,7 +32,6 @@ class AppointmentController extends Controller
             ->orderBy('start_time', 'desc')
             ->paginate(10);
 
-        // ── Unpaid razorpay appointments — banner ke liye alag query ───────
         $unpaidAppointments = Appointment::with(['service'])
             ->where('tenant_id', $tenantId)
             ->where('customer_id', $customerId)
@@ -43,15 +41,15 @@ class AppointmentController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
-        // ── Stats ───────────────────────────────────────────────────────────
         $statsRaw = Appointment::where('tenant_id', $tenantId)
             ->where('customer_id', $customerId)
-            ->select(
-                DB::raw('COUNT(*) as total'),
-                DB::raw("SUM(CASE WHEN appointment_date >= CURRENT_DATE AND status NOT IN ('cancelled','completed') THEN 1 ELSE 0 END) as upcoming"),
-                DB::raw("SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed"),
-                DB::raw("SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled"),
-                DB::raw("SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending")
+            ->selectRaw(
+                "COUNT(*) as total,
+                 SUM(CASE WHEN appointment_date >= ? AND status NOT IN ('cancelled','completed') THEN 1 ELSE 0 END) as upcoming,
+                 SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+                 SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
+                 SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending",
+                [$tenantToday]
             )
             ->first();
 
@@ -94,11 +92,14 @@ class AppointmentController extends Controller
             return back()->with('error', 'Action Denied: Past appointments cannot be modified or altered.');
         }
 
+        $tenantTz = app('customerTenant')->settings['timezone'] ?? config('app.timezone', 'UTC');
+
         $appointmentDateTime = Carbon::parse(
-            $appointment->appointment_date->format('Y-m-d').' '.$appointment->start_time
+            $appointment->appointment_date->format('Y-m-d').' '.$appointment->start_time,
+            $tenantTz
         );
 
-        if (Carbon::now()->diffInHours($appointmentDateTime, false) < 2) {
+        if (Carbon::now($tenantTz)->diffInHours($appointmentDateTime, false) < 2) {
             return back()->with('error', 'Action Denied: Appointments cannot be cancelled within 2 hours of the scheduled time.');
         }
 

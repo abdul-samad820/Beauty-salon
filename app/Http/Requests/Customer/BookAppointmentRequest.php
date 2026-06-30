@@ -58,10 +58,23 @@ class BookAppointmentRequest extends FormRequest
             'start_time' => [
                 'required',
                 'date_format:H:i',
+                function ($attribute, $value, $fail) use ($tenantTimezone, $tenantTodayDate) {
+                    $appointmentDate = $this->input('appointment_date');
+                    if ($appointmentDate === $tenantTodayDate) {
+                        $slotDateTime = Carbon::createFromFormat(
+                            'Y-m-d H:i',
+                            $appointmentDate.' '.$value,
+                            $tenantTimezone
+                        );
+                        if ($slotDateTime->isPast()) {
+                            $fail('The selected time slot has already passed.');
+                        }
+                    }
+                },
             ],
             'payment_method' => [
                 'required',
-                'in:cash,upi,razorpay',
+                'in:cash,razorpay',
             ],
 
             'notes' => [

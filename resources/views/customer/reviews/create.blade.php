@@ -91,7 +91,6 @@
         });
     }
 
-    // Init
     updateStars(currentRating);
 
 </script>

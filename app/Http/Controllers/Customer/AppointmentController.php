@@ -4,15 +4,17 @@ namespace App\Http\Controllers\Customer;
 
 use App\Http\Controllers\Controller;
 use App\Models\Appointment;
-use App\Models\Service;
+use App\Services\AppointmentService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class AppointmentController extends Controller
 {
-    // Retrieve all bookings for the authenticated customer
+    public function __construct(
+        private AppointmentService $appointmentService
+    ) {}
+
     public function index(Request $request)
     {
         $appointments = Appointment::with(['service', 'staff.user'])
@@ -26,94 +28,69 @@ class AppointmentController extends Controller
         ]);
     }
 
-    // Store a new appointment with race condition handling
     public function store(Request $request)
     {
+        $tenant = app('currentTenant');
+        $tenantTz = $tenant->settings['timezone'] ?? config('app.timezone', 'UTC');
+
+        $tenantToday = Carbon::now($tenantTz)->toDateString();
+
         $request->validate([
             'service_id' => [
                 'required',
                 Rule::exists('services', 'id')
-                    ->where(
-                        'tenant_id',
-                        app('currentTenant')->id
-                    ),
+                    ->where('tenant_id', $tenant->id)
+                    ->where('is_active', true),
             ],
             'staff_id' => [
                 'required',
                 Rule::exists('staff', 'id')
-                    ->where(
-                        'tenant_id',
-                        app('currentTenant')->id
-                    ),
+                    ->where('tenant_id', $tenant->id),
             ],
-            'appointment_date' => 'required|date|after_or_equal:today',
+            // FIXED API-03: after_or_equal:today UTC tha — tenant-aware date use kiya
+            'appointment_date' => ['required', 'date', 'after_or_equal:'.$tenantToday],
             'start_time' => 'required|date_format:H:i',
-            'notes' => 'nullable|string',
+            'payment_method' => 'nullable|in:cash,razorpay',
+            'notes' => 'nullable|string|max:500',
         ]);
 
-        $service = Service::where(
-            'tenant_id',
-            app('currentTenant')->id
-        )->findOrFail($request->service_id);
-
-        $endTime = Carbon::parse($request->start_time)
-            ->addMinutes($service->duration_minutes)
-            ->format('H:i');
+        $paymentMethod = $request->payment_method ?? 'cash';
 
         try {
-            $appointment = DB::transaction(function () use ($request, $endTime) {
 
-                $conflict = Appointment::lockForUpdate()
-                    ->where('staff_id', $request->staff_id)
-                    ->where('appointment_date', $request->appointment_date)
-                    ->whereNotIn('status', ['cancelled'])
-                    ->where(function ($query) use ($request, $endTime) {
-                        // Check for overlapping existing bookings
-                        // that conflict with the requested time slot
-                        $query->where(function ($q) use ($request, $endTime) {
-                            $q->where('start_time', '<', $endTime)
-                                ->where('end_time', '>', $request->start_time);
-                        });
-                    })
-                    ->first();
-
-                // Conflict found: The slot is already booked
-                if ($conflict) {
-                    throw new \Exception('SLOT_TAKEN');
-                }
-
-                // Slot is available: Proceed with booking creation
-                $appointment = Appointment::create([
-                    'tenant_id' => app('currentTenant')->id,
-                    'customer_id' => request()->user()->id,
-                    'staff_id' => request()->staff_id,
-                    'service_id' => request()->service_id,
-                    'appointment_date' => request()->appointment_date,
-                    'start_time' => request()->start_time,
-                    'end_time' => $endTime,
-                    'status' => 'pending',
-                    'notes' => request()->notes,
-                    'reminder_sent' => false,
-                ]);
-
-                return $appointment->load(['service', 'staff.user']);
-            });
+            $appointment = $this->appointmentService->create([
+                'tenant_id' => $tenant->id,
+                'customer_id' => $request->user()->id,
+                'service_id' => $request->service_id,
+                'staff_id' => $request->staff_id,
+                'appointment_date' => $request->appointment_date,
+                'start_time' => $request->start_time,
+                'notes' => $request->notes,
+                'payment_method' => $paymentMethod,
+                'payment_status' => $paymentMethod === 'razorpay' ? 'pending' : 'not_required',
+                'status' => $paymentMethod === 'razorpay' ? 'pending' : 'confirmed',
+            ]);
 
             return response()->json([
                 'message' => 'Appointment booked successfully!',
-                'data' => $appointment,
+                'data' => $appointment->load(['service', 'staff.user']),
             ], 201);
 
-        } catch (\Exception $e) {
+        } catch (\RuntimeException $e) {
+            $errorMessages = [
+                'STAFF_ALREADY_BOOKED' => ['message' => 'This time slot is already booked. Please choose a different time.', 'code' => 409],
+                'STAFF_NOT_WORKING_THIS_DAY' => ['message' => 'This staff member does not work on the selected day.', 'code' => 422],
+                'SLOT_OUTSIDE_WORKING_HOURS' => ['message' => 'The selected time is outside working hours.', 'code' => 422],
+                'TENANT_SUBSCRIPTION_EXPIRED' => ['message' => 'Online booking is currently unavailable.', 'code' => 403],
+                'PLAN_APPOINTMENT_LIMIT_REACHED' => ['message' => 'This salon has reached its monthly booking limit.', 'code' => 403],
+            ];
 
-            // Handle slot taken error
-            if ($e->getMessage() === 'SLOT_TAKEN') {
+            if (isset($errorMessages[$e->getMessage()])) {
                 return response()->json([
-                    'message' => 'This time slot is already booked. Please choose a different time.',
-                ], 409); // 409 = Conflict
+                    'message' => $errorMessages[$e->getMessage()]['message'],
+                ], $errorMessages[$e->getMessage()]['code']);
             }
 
-            // Handle general errors
             return response()->json([
                 'message' => 'Booking failed. Please try again later.',
             ], 500);
@@ -123,14 +100,10 @@ class AppointmentController extends Controller
     // Cancel an existing appointment
     public function cancel($id)
     {
-        $appointment = Appointment::where(
-            'tenant_id',
-            app('currentTenant')->id
-        )
-            ->where(
-                'customer_id',
-                auth()->id()
-            )
+        $tenant = app('currentTenant');
+
+        $appointment = Appointment::where('tenant_id', $tenant->id)
+            ->where('customer_id', auth()->id())
             ->where('id', $id)
             ->first();
 
@@ -154,11 +127,14 @@ class AppointmentController extends Controller
             ], 400);
         }
 
+        $tenantTz = $tenant->settings['timezone'] ?? config('app.timezone', 'UTC');
+
         $appointmentDateTime = Carbon::parse(
-            Carbon::parse($appointment->appointment_date)->toDateString().' '.$appointment->start_time
+            $appointment->appointment_date->format('Y-m-d').' '.$appointment->start_time,
+            $tenantTz
         );
 
-        if (Carbon::now()->diffInHours($appointmentDateTime, false) < 2) {
+        if (Carbon::now($tenantTz)->diffInHours($appointmentDateTime, false) < 2) {
             return response()->json([
                 'message' => 'Appointments cannot be cancelled within 2 hours of the scheduled time.',
             ], 422);

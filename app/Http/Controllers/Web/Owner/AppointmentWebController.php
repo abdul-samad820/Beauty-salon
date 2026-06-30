@@ -93,9 +93,12 @@ class AppointmentWebController extends Controller
     {
         $tenant = app('currentTenant');
 
+        $tenantTz = $tenant->settings['timezone'] ?? config('app.timezone');
+        $tenantToday = Carbon::now($tenantTz)->toDateString();
+
         $appointments = Appointment::with(['customer', 'staff.user', 'service'])
             ->where('tenant_id', $tenant->id)
-            ->whereDate('appointment_date', Carbon::today())
+            ->whereDate('appointment_date', $tenantToday)
             ->orderBy('start_time')
             ->get();
 
@@ -108,7 +111,7 @@ class AppointmentWebController extends Controller
             'no_show' => $appointments->where('status', 'no_show')->count(),
         ];
 
-        $date = Carbon::today()->format('l, d F Y');
+        $date = Carbon::now($tenantTz)->format('l, d F Y');
 
         return view('owner.appointments.today', compact('appointments', 'stats', 'date'));
     }
@@ -139,6 +142,11 @@ class AppointmentWebController extends Controller
         $currentMonthAppointments = Appointment::where('tenant_id', $tenant->id)
             ->whereMonth('appointment_date', now()->month)
             ->whereYear('appointment_date', now()->year)
+            ->whereNotIn('status', ['cancelled'])
+            ->where(function ($q) {
+                $q->where('payment_method', '!=', 'razorpay')
+                    ->orWhere('payment_status', 'paid');
+            })
             ->count();
 
         if ($plan && $currentMonthAppointments >= $plan->max_appointments_per_month) {
@@ -181,19 +189,10 @@ class AppointmentWebController extends Controller
                     ->whereDate('appointment_date', $validated['appointment_date'])
                     ->whereNotIn('status', ['cancelled', 'completed', 'no_show'])
                     ->where(function ($query) use ($validated, $endTime) {
-                        $query->whereBetween('start_time', [
-                            $validated['start_time'],
-                            $endTime->format('H:i'),
-                        ])
-                            ->orWhereBetween('end_time', [
-                                $validated['start_time'],
-                                $endTime->format('H:i'),
-                            ])
-                            ->orWhere(function ($q) use ($validated, $endTime) {
-                                $q->where('start_time', '<=', $validated['start_time'])
-                                    ->where('end_time', '>=', $endTime->format('H:i'));
-                            });
+                        $query->where('start_time', '<', $endTime->format('H:i'))
+                            ->where('end_time', '>', $validated['start_time']);
                     })
+
                     ->lockForUpdate()
                     ->exists();
 

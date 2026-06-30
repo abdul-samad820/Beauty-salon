@@ -89,83 +89,123 @@
     </div>
 
     <div class="col-12 col-lg-5 fade-up s3">
-        <section class="card-lux p-4" id="bookingPanel" data-subdomain="{{ $subdomain }}" style="position:sticky;top:1.5rem;">
-            <div style="border-bottom:1px solid var(--border);padding-bottom:1rem;margin-bottom:1rem;">
-                <h3 class="serif" style="font-size:1.1rem;color:var(--text);margin-bottom:0;">Configure Appointment</h3>
+        <section class="card-lux" id="bookingPanel" data-subdomain="{{ $subdomain }}" style="position:sticky;top:1.5rem;padding:0;overflow:hidden;">
+
+            {{-- Panel Header --}}
+            <div style="padding:1.5rem 1.5rem 1.25rem;border-bottom:1px solid var(--border);">
+                <div style="display:flex;align-items:center;gap:0.6rem;margin-bottom:0.3rem;">
+                    <span style="display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:var(--gold-dim);color:var(--gold);font-size:0.85rem;">
+                        <i class="bi bi-calendar2-week"></i>
+                    </span>
+                    <h3 class="serif" style="font-size:1.15rem;color:var(--text);margin:0;">Configure Appointment</h3>
+                </div>
+                <p style="font-size:0.7rem;color:var(--text-3);margin:0 0 0 2.3rem;">Complete the steps below to reserve your slot</p>
             </div>
 
-            <div id="svcInfo" class="hidden" style="margin-bottom:1.5rem;background:var(--gold-dim);border:1px solid rgba(201,169,110,0.2);border-radius:var(--r-md);padding:1rem;">
-                <div style="font-size:0.65rem;font-weight:600;text-transform:uppercase;color:var(--gold);margin-bottom:0.2rem;">Selected Treatment</div>
-                <div id="infoName" style="font-size:0.85rem;font-weight:600;color:var(--text);"></div>
-                <div style="display:flex;gap:1rem;margin-top:0.5rem;">
-                    <span id="infoPrice" style="font-size:0.9rem;font-weight:600;color:var(--text);"></span>
-                    <span id="infoDur" style="font-size:0.75rem;color:var(--text-3);"></span>
+            {{-- Progress --}}
+            <div style="padding:1.1rem 1.5rem;border-bottom:1px solid var(--border);background:var(--bg-input);">
+                <div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:0.6rem;">
+                    <span id="progress-label" style="font-size:0.7rem;font-weight:600;color:var(--text-2);letter-spacing:0.02em;">Step 1 of 4 — Select a Service</span>
+                    <span id="progress-percent" style="font-size:0.7rem;font-weight:700;color:var(--gold);">25%</span>
+                </div>
+                <div style="background:rgba(255,255,255,0.06);border-radius:20px;height:5px;overflow:hidden;">
+                    <div id="booking-progress-bar" style="width:25%;height:100%;background:linear-gradient(90deg, var(--gold) 0%, #e8c97a 100%);border-radius:20px;transition:width .4s cubic-bezier(0.16,1,0.3,1);"></div>
+                </div>
+                <div style="display:flex;justify-content:space-between;margin-top:0.55rem;">
+                    @foreach(['Service','Date & Time','Payment','Confirm'] as $i => $stepName)
+                    <span style="font-size:0.58rem;color:var(--text-3);letter-spacing:0.03em;{{ $i === 0 ? '' : '' }}">{{ $stepName }}</span>
+                    @endforeach
                 </div>
             </div>
 
-            {{-- Progress Bar --}}
-            <div style="margin-bottom:1.5rem;">
-                <div style="display:flex;justify-content:space-between;margin-bottom:.5rem;">
-                    <span id="progress-label" style="font-size:.7rem;color:var(--text-3);">Step 1 of 4 — Select a Service</span>
-                    <span id="progress-percent" style="font-size:.7rem;color:var(--gold);">25%</span>
-                </div>
-                <div style="background:var(--bg-input);border-radius:20px;height:4px;overflow:hidden;">
-                    <div id="booking-progress-bar" style="width:25%;height:100%;background:var(--gold);border-radius:20px;transition:width .4s ease;"></div>
-                </div>
-            </div>
+            <div style="padding:1.5rem;">
 
-            <form method="POST" action="{{ route('customer.book', $subdomain) }}" id="bookForm" style="display:flex;flex-direction:column;gap:1rem;">
-                @csrf
-                <input type="hidden" name="service_id" id="f_svc_id" />
-                <input type="hidden" name="staff_id" id="f_staff_id" />
-
-                <div>
-                    <label class="lux-label" for="datePicker">Preferred Date *</label>
-                    <input type="date" id="datePicker" name="appointment_date" min="{{ date('Y-m-d') }}" class="lux-input" onchange="Booking.onDateChange(this.value, document.getElementById('bookingPanel').dataset.subdomain)" required />
-                </div>
-
-                <input type="hidden" name="start_time" id="f_time_val" />
-
-                <div>
-                    <label class="lux-label">Select Professional</label>
-                    <div style="display:flex;flex-wrap:wrap;gap:0.5rem;">
-                        <button type="button" class="staff-chip selected" data-id="" onclick="Booking.selectStaff(this,'',document.getElementById('bookingPanel').dataset.subdomain)">Anyone (Auto)</button>
-                        @foreach($staff as $s)
-                        <button type="button" class="staff-chip" data-id="{{ $s->id }}" onclick="Booking.selectStaff(this,'{{ $s->id }}',document.getElementById('bookingPanel').dataset.subdomain)">{{ $s->user?->name }}</button>
-                        @endforeach
+                {{-- Selected Treatment Card --}}
+                <div id="svcInfo" class="hidden" style="margin-bottom:1.4rem;background:linear-gradient(135deg, var(--gold-dim) 0%, rgba(201,169,110,0.03) 100%);border:1px solid rgba(201,169,110,0.25);border-radius:var(--r-md);padding:1rem 1.1rem;display:flex;align-items:center;gap:0.9rem;">
+                    <span style="flex-shrink:0;display:flex;align-items:center;justify-content:center;width:38px;height:38px;border-radius:10px;background:rgba(201,169,110,0.15);color:var(--gold);font-size:1rem;">
+                        <i class="bi bi-stars"></i>
+                    </span>
+                    <div style="min-width:0;flex:1;">
+                        <div style="font-size:0.6rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:var(--gold);margin-bottom:0.15rem;">Selected Treatment</div>
+                        <div id="infoName" style="font-size:0.88rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;"></div>
+                        <div style="display:flex;gap:0.9rem;margin-top:0.3rem;">
+                            <span id="infoPrice" style="font-size:0.95rem;font-weight:700;color:var(--text);"></span>
+                            <span id="infoDur" style="font-size:0.75rem;color:var(--text-3);display:flex;align-items:center;gap:0.25rem;"></span>
+                        </div>
                     </div>
                 </div>
 
-                <div id="slotsSection" class="hidden">
-                    <label class="lux-label">Available Time Slots *</label>
-                    <div id="slotSpinner" style="display:none;padding:1rem;text-align:center;color:var(--text-3);font-size:0.75rem;">
-                        <i class="bi bi-arrow-repeat spin"></i> Searching for availability...
+                <form method="POST" action="{{ route('customer.book', $subdomain) }}" id="bookForm" style="display:flex;flex-direction:column;gap:1.4rem;">
+                    @csrf
+                    <input type="hidden" name="service_id" id="f_svc_id" />
+                    <input type="hidden" name="staff_id" id="f_staff_id" />
+                    <input type="hidden" name="start_time" id="f_time_val" />
+
+                    {{-- Date --}}
+                    <div>
+                        <label class="lux-label" for="datePicker" style="display:flex;align-items:center;gap:0.4rem;">
+                            <i class="bi bi-calendar3" style="color:var(--gold);font-size:0.8rem;"></i> Preferred Date *
+                        </label>
+                        <input type="date" id="datePicker" name="appointment_date" min="{{ $tenantTodayDate }}" class="lux-input" onchange="Booking.onDateChange(this.value, document.getElementById('bookingPanel').dataset.subdomain)" required />
                     </div>
-                    <div id="slotsContainer" style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-top:0.5rem;"></div>
-                </div>
 
-                <div>
-                    <label class="lux-label">Payment Method *</label>
-                    <div style="display:flex;gap:0.5rem;">
-                        <button type="button" class="pay-chip selected" id="pay_cash" data-payment="cash" onclick="selectPayment('cash')">
-                            <i class="bi bi-cash"></i> Cash
-                        </button>
-                        <button type="button" class="pay-chip" id="pay_razorpay" data-payment="razorpay" onclick="selectPayment('razorpay')">
-                            <i class="bi bi-credit-card"></i> Online Pay
-                        </button>
+                    {{-- Professional --}}
+                    <div>
+                        <label class="lux-label" style="display:flex;align-items:center;gap:0.4rem;">
+                            <i class="bi bi-person-badge" style="color:var(--gold);font-size:0.8rem;"></i> Select Professional
+                        </label>
+                        <div style="display:flex;flex-wrap:wrap;gap:0.5rem;margin-top:0.5rem;">
+                            <button type="button" class="staff-chip selected" data-id="" onclick="Booking.selectStaff(this,'',document.getElementById('bookingPanel').dataset.subdomain)">
+                                <i class="bi bi-shuffle" style="font-size:0.7rem;margin-right:0.3rem;"></i>Anyone (Auto)
+                            </button>
+                            @foreach($staff as $s)
+                            <button type="button" class="staff-chip" data-id="{{ $s->id }}" onclick="Booking.selectStaff(this,'{{ $s->id }}',document.getElementById('bookingPanel').dataset.subdomain)">{{ $s->user?->name }}</button>
+                            @endforeach
+                        </div>
                     </div>
-                    <input type="hidden" name="payment_method" id="f_payment" value="cash" />
-                </div>
 
-                <div id="notesSection" style="display:none;">
-                    <label class="lux-label" for="notes">Special Requests/Comments</label>
-                    <textarea name="notes" id="notes" class="lux-input" rows="2" placeholder="e.g. Sensitive skin treatments..."></textarea>
-                </div>
+                    {{-- Time Slots --}}
+                    <div id="slotsSection" class="hidden">
+                        <label class="lux-label" style="display:flex;align-items:center;gap:0.4rem;">
+                            <i class="bi bi-clock-history" style="color:var(--gold);font-size:0.8rem;"></i> Available Time Slots *
+                        </label>
+                        <div id="slotSpinner" style="display:none;padding:1.25rem;text-align:center;color:var(--text-3);font-size:0.75rem;background:var(--bg-input);border-radius:var(--r-sm);margin-top:0.5rem;">
+                            <i class="bi bi-arrow-repeat spin"></i> Searching for availability...
+                        </div>
+                        <div id="slotsContainer" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(85px,1fr));gap:0.5rem;margin-top:0.6rem;"></div>
+                    </div>
 
-                <button type="submit" id="bookBtn" class="btn-lux-gold" style="width:100%;margin-top:0.5rem;opacity:0.5;cursor:not-allowed;" disabled>
-                    <i class="bi bi-calendar-check-fill"></i> Confirm Appointment
-                </button>
-            </form>
+                    {{-- Payment --}}
+                    <div>
+                        <label class="lux-label" style="display:flex;align-items:center;gap:0.4rem;">
+                            <i class="bi bi-wallet2" style="color:var(--gold);font-size:0.8rem;"></i> Payment Method *
+                        </label>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:0.6rem;margin-top:0.5rem;">
+                            <button type="button" class="pay-chip pay-chip-block selected" id="pay_cash" data-payment="cash" onclick="selectPayment('cash')">
+                                <i class="bi bi-cash-coin"></i>
+                                <span>Cash</span>
+                            </button>
+                            <button type="button" class="pay-chip pay-chip-block" id="pay_razorpay" data-payment="razorpay" onclick="selectPayment('razorpay')">
+                                <i class="bi bi-credit-card-2-front"></i>
+                                <span>Online Pay</span>
+                            </button>
+                        </div>
+                        <input type="hidden" name="payment_method" id="f_payment" value="cash" />
+                    </div>
+
+                    {{-- Notes --}}
+                    <div id="notesSection" style="display:none;">
+                        <label class="lux-label" for="notes" style="display:flex;align-items:center;gap:0.4rem;">
+                            <i class="bi bi-chat-left-text" style="color:var(--gold);font-size:0.8rem;"></i> Special Requests / Comments
+                        </label>
+                        <textarea name="notes" id="notes" class="lux-input" rows="2" placeholder="e.g. Sensitive skin treatments..." style="resize:vertical;"></textarea>
+                    </div>
+
+                    <button type="submit" id="bookBtn" class="btn-lux-gold" style="width:100%;display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.85rem;font-size:0.85rem;opacity:0.5;cursor:not-allowed;" disabled>
+                        <i class="bi bi-calendar-check-fill"></i> Confirm Appointment
+                    </button>
+                </form>
+            </div>
         </section>
     </div>
 </div>
@@ -192,12 +232,15 @@
         border: 1px solid var(--border);
         background: var(--bg-input);
         color: var(--text-2);
-        padding: 0.3rem 0.8rem;
+        padding: 0.4rem 0.9rem;
         border-radius: 20px;
-        font-size: 0.7rem;
+        font-size: 0.72rem;
+        font-weight: 500;
         transition: all 0.2s;
         cursor: pointer;
         user-select: none;
+        display: inline-flex;
+        align-items: center;
     }
 
     .staff-chip:hover {
@@ -210,15 +253,16 @@
         border-color: var(--gold);
         color: var(--gold);
         background: var(--gold-dim);
+        font-weight: 600;
     }
 
     .pay-chip {
         border: 1px solid var(--border);
         background: var(--bg-input);
         color: var(--text-2);
-        padding: 0.3rem 0.8rem;
+        padding: 0.4rem 0.9rem;
         border-radius: 20px;
-        font-size: 0.7rem;
+        font-size: 0.72rem;
         transition: all 0.2s;
         cursor: pointer;
         user-select: none;
@@ -234,6 +278,69 @@
         border-color: var(--gold);
         color: var(--gold);
         background: var(--gold-dim);
+    }
+
+    /* Redesigned block-style payment chips */
+    .pay-chip-block {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.35rem;
+        padding: 0.85rem 0.5rem;
+        border-radius: var(--r-sm);
+        font-weight: 600;
+    }
+
+    .pay-chip-block i {
+        font-size: 1.05rem;
+    }
+
+    .pay-chip-block.selected {
+        box-shadow: 0 0 0 1px var(--gold) inset;
+    }
+
+    /* Slot buttons — refined */
+    .slot-btn {
+        border: 1px solid var(--border);
+        background: var(--bg-input);
+        color: var(--text-2);
+        padding: 0.55rem 0.4rem;
+        border-radius: var(--r-sm);
+        font-size: 0.72rem;
+        font-weight: 500;
+        transition: 0.2s;
+        cursor: pointer;
+        text-align: center;
+    }
+
+    .slot-btn:hover:not(:disabled) {
+        border-color: var(--gold);
+        color: var(--gold);
+        background: var(--gold-dim);
+    }
+
+    .slot-btn.selected {
+        border-color: var(--gold);
+        background: var(--gold-dim);
+        color: var(--gold);
+        font-weight: 700;
+        box-shadow: 0 0 0 1px var(--gold) inset;
+    }
+
+    .slot-btn.disabled,
+    .slot-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+        text-decoration: line-through;
+    }
+
+    #bookBtn:not(:disabled) {
+        box-shadow: 0 6px 20px rgba(201, 169, 110, 0.25);
+    }
+
+    #bookBtn:not(:disabled):hover {
+        transform: translateY(-1px);
     }
 
 </style>
@@ -252,39 +359,55 @@
         const target = document.getElementById(map[method]);
         if (target) target.classList.add('selected');
         if (window.Booking) window.Booking.refreshSubmitState();
+        updateProgress();
     }
 
     function updateProgress() {
         const steps = [{
                 check: () => document.getElementById('f_svc_id').value !== ''
-                , label: 'Step 2 of 4 — Select Date & Time'
-                , pct: 50
+                , label: 'Step 2 of 5 — Select Date'
+                , pct: 20
+            }
+            , {
+                check: () => document.getElementById('datePicker').value !== ''
+                , label: 'Step 3 of 5 — Select Professional'
+                , pct: 40
+            }
+            , {
+                check: () => document.querySelector('.staff-chip.selected') !== null
+                , label: 'Step 4 of 5 — Choose Time Slot'
+                , pct: 60
             }
             , {
                 check: () => document.getElementById('f_time_val').value !== ''
-                , label: 'Step 3 of 4 — Choose Payment'
-                , pct: 75
+                , label: 'Step 5 of 5 — Choose Payment'
+                , pct: 80
             }
             , {
-                check: () => document.getElementById('f_payment').value !== ''
-                , label: 'Step 4 of 4 — Ready to Confirm'
+                check: () => document.querySelector('.pay-chip.selected') !== null
+                , label: 'Ready to Confirm'
                 , pct: 100
             }
-        , ];
-        let pct = 25
-            , label = 'Step 1 of 4 — Select a Service';
+        ];
+
+        let pct = 0
+            , label = 'Step 1 of 5 — Select a Service';
+
         for (const step of steps) {
             if (step.check()) {
                 pct = step.pct;
                 label = step.label;
-            } else break;
+            } else {
+                break;
+            }
         }
+
         document.getElementById('booking-progress-bar').style.width = pct + '%';
         document.getElementById('progress-label').textContent = label;
         document.getElementById('progress-percent').textContent = pct + '%';
     }
 
-    ['f_svc_id', 'f_time_val', 'f_payment'].forEach(id => {
+    ['f_svc_id', 'datePicker', 'f_staff_id', 'f_time_val', 'f_payment'].forEach(id => {
         const el = document.getElementById(id);
         if (el) new MutationObserver(updateProgress).observe(el, {
             attributes: true
@@ -292,8 +415,17 @@
             , subtree: true
         });
     });
+
+    document.getElementById('datePicker') ? .addEventListener('change', updateProgress);
     document.getElementById('f_payment') ? .addEventListener('change', updateProgress);
-    setInterval(updateProgress, 500);
+
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.staff-chip, .pay-chip, .slot-btn, #svcGrid article')) {
+            setTimeout(updateProgress, 0);
+        }
+    });
+
+    updateProgress();
 
 </script>
 @endpush

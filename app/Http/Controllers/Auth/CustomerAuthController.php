@@ -7,6 +7,7 @@ use App\Models\User;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Validation\Rule;
 
 class CustomerAuthController extends Controller
 {
@@ -19,7 +20,11 @@ class CustomerAuthController extends Controller
     {
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email',
+            'email' => [
+                'required',
+                'email',
+                Rule::unique('users')->where(fn ($q) => $q->where('tenant_id', app('currentTenant')->id)),
+            ],
             'phone' => 'required|string',
             'password' => 'required|min:8|confirmed',
         ]);

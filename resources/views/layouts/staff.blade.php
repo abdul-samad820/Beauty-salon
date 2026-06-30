@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     <title>@yield('title', 'Staff Portal') · LUMIÈRE</title>
-
+      <link rel="icon" type="image/png" href="{{ asset('lumiere-favicon.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" />
     <link rel="stylesheet" href="{{ asset('frontend/css/app.css') }}" />
@@ -105,7 +105,21 @@
         {{-- Sidebar --}}
         <aside class="sidebar">
             <div class="sidebar-logo" style="padding: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
-                <span class="logo-mark" style="background:var(--gold); color:#000; width:35px; height:35px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:bold;">L</span>
+                <span class="logo-mark"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="34" height="34" aria-hidden="true">
+
+                <!-- Main Vertical Stem of 'L' -->
+                <rect x="25" y="15" width="8" height="70" fill="#D4AF37" />
+
+                <!-- Graceful Leaf/Flowing Horizontal Curve of 'L' -->
+                <path d="M 33 77 C 55 77 75 70 85 45 C 80 75 55 85 25 85 Z" fill="#D4AF37" />
+
+                <!-- Subtle Rose Gold Flowing Accent Line (Hair/Wellness vibe) -->
+                <path d="M 42 67 C 60 67 75 55 80 35 C 75 60 55 72 42 72 Z" fill="#B76E79" />
+
+                <!-- Geometric Premium Sparkle -->
+                <path d="M 75 10 Q 75 20 85 20 Q 75 20 75 30 Q 75 20 65 20 Q 75 20 75 10 Z" fill="#D4AF37" />
+
+            </svg></span>
                 <div>
                     <div class="logo-text" style="font-weight:600; color:var(--text);">LUMIÈRE<span>.</span></div>
                     <div class="logo-sub" style="font-size:0.7rem; color:var(--text-3); text-transform:uppercase;">Staff Portal</div>

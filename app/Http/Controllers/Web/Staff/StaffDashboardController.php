@@ -99,13 +99,14 @@ class StaffDashboardController extends Controller
 
         $commissions = Commission::with('appointment.service')
             ->where('staff_id', $staff->id)
+            ->where('tenant_id', $staff->tenant_id)
             ->orderBy('created_at', 'desc')
             ->paginate(10);
 
         $summary = [
-            'total_earned' => Commission::where('staff_id', $staff->id)->sum('commission_amount'),
-            'pending' => Commission::where('staff_id', $staff->id)->where('status', 'pending')->sum('commission_amount'),
-            'paid' => Commission::where('staff_id', $staff->id)->where('status', 'paid')->sum('commission_amount'),
+            'total_earned' => Commission::where('staff_id', $staff->id)->where('tenant_id', $staff->tenant_id)->sum('commission_amount'),
+            'pending' => Commission::where('staff_id', $staff->id)->where('tenant_id', $staff->tenant_id)->where('status', 'pending')->sum('commission_amount'),
+            'paid' => Commission::where('staff_id', $staff->id)->where('tenant_id', $staff->tenant_id)->where('status', 'paid')->sum('commission_amount'),
         ];
 
         return view('staff.commissions.index', compact('commissions', 'summary', 'tenant', 'staff'));

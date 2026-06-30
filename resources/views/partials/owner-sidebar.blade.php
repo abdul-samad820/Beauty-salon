@@ -11,7 +11,23 @@ $lowStock = \App\Models\Product::where('tenant_id', $tenantId)
 
     <aside class="lm-sidebar" id="sidebar" aria-label="Owner Navigation">
         <div class="sidebar-logo-area">
-            <div class="logo-gem" aria-hidden="true">L</div>
+           <div class="logo-gem" aria-hidden="true">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="34" height="34" aria-hidden="true">
+
+                <!-- Main Vertical Stem of 'L' -->
+                <rect x="25" y="15" width="8" height="70" fill="#D4AF37" />
+
+                <!-- Graceful Leaf/Flowing Horizontal Curve of 'L' -->
+                <path d="M 33 77 C 55 77 75 70 85 45 C 80 75 55 85 25 85 Z" fill="#D4AF37" />
+
+                <!-- Subtle Rose Gold Flowing Accent Line (Hair/Wellness vibe) -->
+                <path d="M 42 67 C 60 67 75 55 80 35 C 75 60 55 72 42 72 Z" fill="#B76E79" />
+
+                <!-- Geometric Premium Sparkle -->
+                <path d="M 75 10 Q 75 20 85 20 Q 75 20 75 30 Q 75 20 65 20 Q 75 20 75 10 Z" fill="#D4AF37" />
+
+            </svg>
+</div>
             <div>
                 <div class="logo-wordmark">LUMIÈRE<span>.</span></div>
                 <div class="logo-sub">{{ auth()->user()->tenant?->name ?? 'Management Panel' }}</div>

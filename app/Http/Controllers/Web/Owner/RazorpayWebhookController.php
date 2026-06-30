@@ -3,12 +3,14 @@
 namespace App\Http\Controllers\Web\Owner;
 
 use App\Http\Controllers\Controller;
+use App\Models\Appointment;
 use App\Models\Plan;
 use App\Models\Subscription;
 use App\Models\SubscriptionPayment;
 use App\Models\Tenant;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class RazorpayWebhookController extends Controller
@@ -48,17 +50,35 @@ class RazorpayWebhookController extends Controller
     {
         $paymentId = $data['id'] ?? null;
         $orderId = $data['order_id'] ?? null;
+        $notes = $data['notes'] ?? [];
 
-        // Already processed check
-        $alreadyProcessed = SubscriptionPayment::where('razorpay_payment_id', $paymentId)->exists();
-        if ($alreadyProcessed) {
-            Log::info('Webhook: payment already processed', ['payment_id' => $paymentId]);
+        if (! empty($notes['appointment_id'])) {
+            $appointmentId = (int) $notes['appointment_id'];
+
+            DB::transaction(function () use ($appointmentId, $paymentId) {
+                $appointment = Appointment::lockForUpdate()->find($appointmentId);
+
+                if (! $appointment || $appointment->payment_status === 'paid') {
+                    return; // Already processed — idempotent exit
+                }
+
+                $appointment->update([
+                    'payment_status' => 'paid',
+                    'razorpay_payment_id' => $paymentId,
+                    'razorpay_signature' => 'webhook',
+                    'status' => 'pending',
+                ]);
+
+                Log::info('Webhook: appointment payment reconciled', [
+                    'appointment_id' => $appointmentId,
+                    'payment_id' => $paymentId,
+                ]);
+            });
 
             return;
         }
 
-        // Notes se tenant aur plan info lo
-        $notes = $data['notes'] ?? [];
+        // ── PAY-02: Subscription payment via webhook ──────────
         $tenantId = $notes['tenant_id'] ?? null;
         $planId = $notes['plan_id'] ?? null;
         $billing = $notes['billing_cycle'] ?? 'monthly';
@@ -76,47 +96,59 @@ class RazorpayWebhookController extends Controller
             return;
         }
 
-        $startsAt = now();
-        $expiresAt = $billing === 'yearly'
-            ? $startsAt->copy()->addYear()
-            : $startsAt->copy()->addMonth();
+        DB::transaction(function () use ($paymentId, $orderId, $tenant, $plan, $billing) {
+            $alreadyProcessed = SubscriptionPayment::lockForUpdate()
+                ->where('razorpay_payment_id', $paymentId)
+                ->exists();
 
-        $amount = $billing === 'yearly' ? $plan->price_yearly : $plan->price_monthly;
+            if ($alreadyProcessed) {
+                Log::info('Webhook: subscription payment already processed', ['payment_id' => $paymentId]);
 
-        // Purani subscription expire karo
-        Subscription::where('tenant_id', $tenant->id)
-            ->whereIn('status', ['active', 'trial'])
-            ->update(['status' => 'expired']);
+                return;
+            }
 
-        $subscription = Subscription::create([
-            'tenant_id' => $tenant->id,
-            'plan_id' => $plan->id,
-            'billing_cycle' => $billing,
-            'status' => 'active',
-            'amount' => $amount,
-            'starts_at' => $startsAt,
-            'expires_at' => $expiresAt,
-        ]);
+            $startsAt = now();
+            $expiresAt = $billing === 'yearly'
+                ? $startsAt->copy()->addYear()
+                : $startsAt->copy()->addMonth();
 
-        SubscriptionPayment::create([
-            'subscription_id' => $subscription->id,
-            'tenant_id' => $tenant->id,
-            'amount' => $amount,
-            'payment_method' => 'razorpay',
-            'status' => 'paid',
-            'transaction_id' => $paymentId,
-            'razorpay_order_id' => $orderId,
-            'razorpay_payment_id' => $paymentId,
-            'razorpay_signature' => 'webhook',
-            'paid_at' => now(),
-        ]);
+            $amount = $billing === 'yearly' ? $plan->price_yearly : $plan->price_monthly;
 
-        $tenant->update(['plan' => $plan->slug]);
-        Cache::forget("tenant_plan_{$tenant->id}");
-        Log::info('Webhook: subscription activated', [
-            'tenant_id' => $tenant->id,
-            'plan' => $plan->slug,
-        ]);
+            Subscription::where('tenant_id', $tenant->id)
+                ->whereIn('status', ['active', 'trial'])
+                ->update(['status' => 'expired']);
+
+            $subscription = Subscription::create([
+                'tenant_id' => $tenant->id,
+                'plan_id' => $plan->id,
+                'billing_cycle' => $billing,
+                'status' => 'active',
+                'amount' => $amount,
+                'starts_at' => $startsAt,
+                'expires_at' => $expiresAt,
+            ]);
+
+            SubscriptionPayment::create([
+                'subscription_id' => $subscription->id,
+                'tenant_id' => $tenant->id,
+                'amount' => $amount,
+                'payment_method' => 'razorpay',
+                'status' => 'paid',
+                'transaction_id' => $paymentId,
+                'razorpay_order_id' => $orderId,
+                'razorpay_payment_id' => $paymentId,
+                'razorpay_signature' => 'webhook',
+                'paid_at' => now(),
+            ]);
+
+            $tenant->update(['plan' => $plan->slug]);
+            Cache::forget("tenant_plan_{$tenant->id}");
+
+            Log::info('Webhook: subscription activated', [
+                'tenant_id' => $tenant->id,
+                'plan' => $plan->slug,
+            ]);
+        });
     }
 
     // ── Payment Failed ────────────────────────────────────────
