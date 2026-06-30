@@ -676,6 +676,62 @@ Beauty_Parlour/
 
 ---
 
+###  Screenshots
+
+<p align="center">
+  <img width="1920" alt="Landing Page" src="https://github.com/user-attachments/assets/676cbb86-056c-4384-a0bf-fc5e6b5ef3b1" />
+</p>
+
+<p align="center">
+  <img width="1920" alt="Owner Settings" src="https://github.com/user-attachments/assets/2d5e01fd-a63f-4db2-bc84-ab180551dbf0" />
+</p>
+
+<p align="center">
+  <img width="1920" alt="Customer Appointments" src="https://github.com/user-attachments/assets/6249a6a6-2673-4b13-a4b5-e632965c68d0" />
+</p>
+
+<p align="center">
+  <img width="1920" alt="Staff Dashboard" src="https://github.com/user-attachments/assets/d2c5fcba-61c7-4b1d-b774-dd9e11fea61c" />
+</p>
+
+<p align="center">
+  <img width="1920" alt="Staff Appointments" src="https://github.com/user-attachments/assets/7a72205a-c1d3-41fd-90cd-73b27a52fe27" />
+</p>
+
+<p align="center">
+  <img width="1920" alt="Superadmin Dashboard" src="https://github.com/user-attachments/assets/5bd752e5-a077-4c35-9d26-c3c4d43221c7" />
+</p>
+
+<p align="center">
+  <img width="1920" alt="Superadmin Analytics" src="https://github.com/user-attachments/assets/ddcbe4fe-22e5-4dff-abd1-7c225cf3e693" />
+</p>
+
+<p align="center">
+  <img width="1920" alt="Superadmin Plans" src="https://github.com/user-attachments/assets/f8cca107-4dce-47f0-9c50-ac9fc70dd92a" />
+</p>
+
+<p align="center">
+  <img width="1920" alt="Owner Dashboard" src="https://github.com/user-attachments/assets/40f739ec-9521-454d-be3a-140925f2360c" />
+</p>
+
+<p align="center">
+  <img width="1920" alt="Owner Analytics" src="https://github.com/user-attachments/assets/cf720351-69d1-418a-8eb2-a2a1986f1a7a" />
+</p>
+
+<p align="center">
+  <img width="1920" alt="Inventory Service Mapping" src="https://github.com/user-attachments/assets/c10459ac-ca88-41bf-8f99-29011d0f65db" />
+</p>
+
+<p align="center">
+  <img width="1920" alt="Customer Portal" src="https://github.com/user-attachments/assets/491a0de5-6de4-4ee3-9d2a-c044a7514ebf" />
+</p>
+
+<p align="center">
+  <img width="1920" alt="Booking Confirmation" src="https://github.com/user-attachments/assets/41ab0a28-b2f0-4a44-83f7-728f96fa84f3" />
+</p>
+
+
+
 ## 🤝 Contributing
 
 1. Fork the repository
