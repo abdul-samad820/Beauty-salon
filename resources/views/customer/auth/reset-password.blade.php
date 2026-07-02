@@ -15,14 +15,10 @@
 
     @include('partials.flash-messages')
 
-    {{-- Yahan apne route ka naam confirm kar lena, usually 'customer.password.update' hota hai --}}
     <form method="POST" action="{{ route('customer.password.update', $subdomain ?? request()->route('subdomain')) }}" novalidate>
         @csrf
-
-        {{-- Token Hidden Field --}}
         <input type="hidden" name="token" value="{{ $token }}">
 
-        {{-- Email (Readonly) --}}
         <div class="auth-field has-icon">
             <i class="bi bi-envelope-fill auth-field-icon" aria-hidden="true"></i>
             <input type="email" name="email" id="email" placeholder=" " value="{{ $email ?? old('email') }}" style="padding-left: 2.8rem; color: var(--text-3);" required readonly autocomplete="email" />
@@ -67,8 +63,8 @@
                 if (!input) return;
                 const isPass = input.type === 'password';
                 input.type = isPass ? 'text' : 'password';
-                icon ? .classList.toggle('bi-eye', !isPass);
-                icon ? .classList.toggle('bi-eye-slash', isPass);
+                icon?.classList.toggle('bi-eye', !isPass);
+                icon?.classList.toggle('bi-eye-slash', isPass);
             });
         });
     });

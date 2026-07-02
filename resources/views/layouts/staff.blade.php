@@ -94,6 +94,76 @@
             margin: 0 !important;
         }
 
+        /* ── Mobile Topbar (hamburger + branding, sticky, non-overlapping) ── */
+        .staff-mobile-topbar {
+            display: none;
+            align-items: center;
+            gap: 0.9rem;
+            position: sticky;
+            top: 0;
+            z-index: 500;
+            padding: 0.9rem 1.2rem;
+            background: rgba(9, 9, 11, 0.92);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+        }
+        .staff-mobile-toggle {
+            display: flex;
+            width: 38px; height: 38px;
+            flex-shrink: 0;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border, rgba(255,255,255,0.08));
+            color: var(--text, #f4f4f5);
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-size: 1.1rem;
+        }
+        .staff-topbar-title {
+            font-family: var(--ff-display);
+            font-size: 1.05rem;
+            letter-spacing: 0.03em;
+            color: var(--text, #f4f4f5);
+        }
+        .staff-topbar-title span {
+            color: var(--gold, #C9A84C);
+        }
+        .staff-sidebar-backdrop {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            z-index: 999;
+        }
+
+        @media (max-width: 992px) {
+            .sidebar {
+                position: fixed !important;
+                top: 0; left: 0;
+                z-index: 1000;
+                transform: translateX(-100%) !important;
+                transition: transform 0.3s ease;
+            }
+            .sidebar.open {
+                transform: translateX(0) !important;
+                box-shadow: 4px 0 40px rgba(0,0,0,0.7);
+            }
+            .main-wrap {
+                width: 100vw !important;
+                max-width: 100vw !important;
+            }
+            .page-body {
+                padding: 1.2rem !important;
+            }
+            .staff-mobile-topbar {
+                display: flex !important;
+            }
+            .staff-sidebar-backdrop.show {
+                display: block !important;
+            }
+        }
     </style>
     @stack('styles')
 </head>
@@ -103,6 +173,7 @@
 
     <div class="main-layout-container">
         {{-- Sidebar --}}
+        <div class="staff-sidebar-backdrop" id="staffSidebarBackdrop"></div>
         <aside class="sidebar">
             <div class="sidebar-logo" style="padding: 1.5rem; display: flex; align-items: center; gap: 0.75rem;">
                 <span class="logo-mark"> <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="34" height="34" aria-hidden="true">
@@ -165,6 +236,14 @@
 
         {{-- Main Page Content --}}
         <div class="main-wrap">
+            {{-- Mobile-only sticky topbar: hamburger + branding, never overlaps content --}}
+            <div class="staff-mobile-topbar">
+                <button type="button" class="staff-mobile-toggle" id="staffSidebarToggle" aria-label="Toggle sidebar">
+                    <i class="bi bi-list" aria-hidden="true"></i>
+                </button>
+                <span class="staff-topbar-title">LUMIÈRE <span>Staff Portal</span></span>
+            </div>
+
             <main id="main-content" tabindex="-1">
                 <div class="page-body">
                     @include('partials.flash-messages')
@@ -175,6 +254,19 @@
     </div>
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+    const staffToggleBtn = document.getElementById('staffSidebarToggle');
+    const staffSidebar = document.querySelector('.sidebar');
+    const staffBackdrop = document.getElementById('staffSidebarBackdrop');
+
+    function toggleStaffSidebar() {
+        staffSidebar.classList.toggle('open');
+        staffBackdrop.classList.toggle('show');
+    }
+
+    staffToggleBtn?.addEventListener('click', toggleStaffSidebar);
+    staffBackdrop?.addEventListener('click', toggleStaffSidebar);
+</script>
     @stack('scripts')
 </body>
 </html>

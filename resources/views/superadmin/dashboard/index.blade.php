@@ -31,7 +31,6 @@
         background: rgba(201, 169, 110, 0.5);
         /* Gold hover effect */
     }
-
 </style>
 
 {{-- Hero Section --}}
@@ -47,10 +46,6 @@
             <span class="live-dot" aria-hidden="true"></span>
             <span id="stat-active-salons">{{ $stats['active_tenants'] ?? 0 }} active salons</span>
         </span>
-        {{-- <span id="stat-bookings-today" class="user-chip" style="font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: var(--r-pill);">
-    <i class="bi bi-calendar-check" aria-hidden="true"></i>
-    {{ $stats['total_bookings_today'] ?? 0 }} bookings today
-        </span> --}}
         <span id="stat-revenue-month" class="trend-up" style="font-size: 0.65rem; padding: 0.2rem 0.6rem; border-radius: var(--r-pill);">
             <i class="bi bi-currency-rupee" aria-hidden="true"></i>
             {{ number_format($stats['platform_revenue_month'] ?? 0) }} this month
@@ -62,10 +57,10 @@
 <div class="row g-3 mb-4 fade-up s1">
     @php
     $kpis = [
-    ['label'=>'Total Tenants', 'val'=>$stats['total_tenants']??0, 'color'=>'var(--gold)', 'bg'=>'var(--gold-dim)', 'icon'=>'bi-buildings-fill', 'trend'=>($stats['new_this_month']??0).' this month', 'id'=>'sp1'],
-    ['label'=>'Active Salons', 'val'=>$stats['active_tenants']??0, 'color'=>'var(--emerald)', 'bg'=>'var(--emerald-dim)', 'icon'=>'bi-check-circle-fill', 'trend'=>round((($stats['active_tenants']??0)/(($stats['total_tenants']??1) ?: 1))*100).'% active', 'id'=>'sp2'],
-    ['label'=>'Total Bookings', 'val'=>number_format($stats['total_bookings']??0), 'color'=>'var(--purple)', 'bg'=>'var(--purple-dim)', 'icon'=>'bi-calendar-check-fill', 'trend'=>($stats['total_bookings_today']??0).' today', 'id'=>'sp3'],
-    ['label'=>'Pending Plans', 'val'=>$stats['trial_tenants']??0, 'color'=>'var(--amber)', 'bg'=>'var(--amber-dim)', 'icon'=>'bi-hourglass-split', 'trend'=>'Need upgrade', 'id'=>'sp4'],
+        ['label'=>'Total Tenants', 'val'=>$stats['total_tenants']??0, 'color'=>'var(--gold)', 'bg'=>'var(--gold-dim)', 'icon'=>'bi-buildings-fill', 'trend'=>($stats['new_this_month']??0).' this month', 'id'=>'sp1'],
+        ['label'=>'Active Salons', 'val'=>$stats['active_tenants']??0, 'color'=>'var(--emerald)', 'bg'=>'var(--emerald-dim)', 'icon'=>'bi-check-circle-fill', 'trend'=>round((($stats['active_tenants']??0)/(($stats['total_tenants']??1) ?: 1))*100).'% active', 'id'=>'sp2'],
+        ['label'=>'Total Bookings', 'val'=>number_format($stats['total_bookings']??0), 'color'=>'var(--purple)', 'bg'=>'var(--purple-dim)', 'icon'=>'bi-calendar-check-fill', 'trend'=>($stats['total_bookings_today']??0).' today', 'id'=>'sp3'],
+        ['label'=>'Pending Plans', 'val'=>$stats['trial_tenants']??0, 'color'=>'var(--amber)', 'bg'=>'var(--amber-dim)', 'icon'=>'bi-hourglass-split', 'trend'=>'Need upgrade', 'id'=>'sp4'],
     ];
     @endphp
 
@@ -84,7 +79,7 @@
             <div style="font-size:0.65rem; color:var(--text-3); margin-bottom:0.8rem;">
                 {{$kpi['trend']}}
             </div>
-            <div style="height:25px; width:100%; margin-top:auto;">
+            <div style="height:30px; width:100%; margin-top:auto;">
                 <canvas id="{{$kpi['id']}}"></canvas>
             </div>
         </div>
@@ -100,7 +95,7 @@
                 <h3 class="serif" style="font-size: 1.2rem; color: var(--gold); margin-bottom:0;">Tenant Growth</h3>
                 <p style="font-size: 0.65rem; color: var(--text-3); margin-bottom:0;">New registrations chronologically per month</p>
             </div>
-            <div style="position: relative; height: 180px; width: 100%;">
+            <div style="position: relative; height: 220px; width: 100%;">
                 <canvas id="growthChart"></canvas>
             </div>
         </div>
@@ -113,7 +108,7 @@
                     <h3 class="serif" style="font-size: 1.2rem; color: var(--gold); margin-bottom:0;">Plan Distribution</h3>
                     <p style="font-size: 0.65rem; color: var(--text-3); margin-bottom:0;">By active subscription tiers</p>
                 </div>
-                <div style="position: relative; height: 110px; width: 100%;">
+                <div style="position: relative; height: 140px; width: 100%; display:flex; justify-content:center;">
                     <canvas id="planChart"></canvas>
                 </div>
             </div>
@@ -122,7 +117,10 @@
                 <tbody>
                     @forelse($planDistribution ?? [] as $plan => $count)
                     <tr>
-                        <td style="font-size: 0.75rem; padding: 0.3rem 0; border: none; color: var(--text-2);">{{ ucfirst($plan) }}</td>
+                        <td style="font-size: 0.75rem; padding: 0.3rem 0; border: none; color: var(--text-2);">
+                            <span style="display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:6px; background-color: {{ $loop->index == 0 ? '#D4AF37' : ($loop->index == 1 ? '#8B5CF6' : '#2D7D6F') }};"></span>
+                            {{ ucfirst($plan) }}
+                        </td>
                         <td style="text-align: right; font-size: 0.75rem; color: var(--gold); font-weight: 500; padding: 0.3rem 0; border: none;">{{ $count }} {{ Str::plural('salon', $count) }}</td>
                     </tr>
                     @empty
@@ -148,7 +146,6 @@
                 <a href="{{ route('superadmin.tenants.index') }}" class="btn-lux-ghost btn-sm border-0">View All</a>
             </div>
 
-            {{-- YAHAN CHANGE KIYA HAI: lux-scroller add kiya gaya aur max-height 280px --}}
             <div class="lux-table-wrapper lux-scroller" style="max-height: 280px; overflow-y: auto; overflow-x: auto;">
                 <table class="lux-table">
                     <thead>
@@ -198,7 +195,6 @@
                 <p style="font-size: 0.65rem; color: var(--text-3); margin:0;">Real-time telemetry events</p>
             </div>
 
-            {{-- YAHAN CHANGE KIYA HAI: lux-scroller add kiya hai consistency ke liye --}}
             <div class="lux-scroller" style="display: flex; flex-direction: column; gap: 0.8rem; overflow-y: auto; max-height: 280px; padding-right: 5px;">
                 @forelse($recentActivity ?? [] as $activity)
                 <div style="display: flex; align-items: flex-start; gap: 0.8rem; padding-bottom: 0.8rem; border-bottom: 1px solid rgba(255,255,255,0.03);">
@@ -227,55 +223,53 @@
     document.addEventListener('DOMContentLoaded', function() {
 
         const colors = {
-            gold: '#c9a96e'
-            , teal: '#2d7d6f'
-            , purple: '#8b5cf6'
-            , emerald: '#10b981'
-            , amber: '#f59e0b'
+            gold: '#D4AF37',
+            teal: '#2d7d6f',
+            purple: '#8b5cf6',
+            emerald: '#10b981',
+            amber: '#f59e0b',
+            bgDark: '#121216', // For borders in charts to match background
+            tooltipBg: 'rgba(18, 18, 22, 0.9)'
         };
-        const gridColor = 'rgba(255,255,255,0.04)';
+        const gridColor = 'rgba(255,255,255,0.05)';
 
         // ==========================================
-        // MINI SPARKLINE GENERATOR (NO EXTERNAL DEPS)
+        // MINI SPARKLINE GENERATOR
         // ==========================================
         function createMiniSparkline(canvasId, dataArr, colorHex) {
-            const ctx = document.getElementById(canvasId);
-            if (!ctx) return;
-            new Chart(ctx.getContext('2d'), {
-                type: 'line'
-                , data: {
-                    labels: ['A', 'B', 'C']
-                    , datasets: [{
-                        data: dataArr
-                        , borderColor: colorHex
-                        , borderWidth: 2
-                        , tension: 0.4
-                        , pointRadius: 0
+            const canvas = document.getElementById(canvasId);
+            if (!canvas) return;
+            const ctx = canvas.getContext('2d');
+            
+            // Create subtle gradient for sparklines
+            let gradient = ctx.createLinearGradient(0, 0, 0, 30);
+            gradient.addColorStop(0, colorHex + '40'); // 25% opacity
+            gradient.addColorStop(1, colorHex + '00'); // 0% opacity
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: dataArr.map((_, i) => i),
+                    datasets: [{
+                        data: dataArr,
+                        borderColor: colorHex,
+                        backgroundColor: gradient,
+                        borderWidth: 2,
+                        tension: 0.4,
+                        fill: true,
+                        pointRadius: 0,
+                        pointHoverRadius: 0
                     }]
-                }
-                , options: {
-                    responsive: true
-                    , maintainAspectRatio: false
-                    , plugins: {
-                        legend: {
-                            display: false
-                        }
-                        , tooltip: {
-                            enabled: false
-                        }
-                    }
-                    , scales: {
-                        x: {
-                            display: false
-                        }
-                        , y: {
-                            display: false
-                            , min: Math.min(...dataArr) * 0.9
-                        }
-                    }
-                    , layout: {
-                        padding: 0
-                    }
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false }, tooltip: { enabled: false } },
+                    scales: {
+                        x: { display: false },
+                        y: { display: false, min: Math.min(...dataArr) * 0.9 }
+                    },
+                    layout: { padding: 0 }
                 }
             });
         }
@@ -285,83 +279,85 @@
         const bVal = parseInt("{{ $stats['total_bookings'] ?? 0 }}") || 0;
         const trVal = parseInt("{{ $stats['trial_tenants'] ?? 0 }}") || 0;
 
-        const sparklines = @json($sparklines);
-
-        const sp1Data = sparklines.tenants.length === 3 ? sparklines.tenants : [0, 0, tVal];
-
-        const sp2Data = sparklines.active.length === 3 ?
-            sparklines.active :
-            [0, 0, aVal];
-
-        const sp3Data = sparklines.bookings.length === 3 ? sparklines.bookings : [0, 0, bVal];
-
-        const sp4Data = sparklines.trials.length === 3 ?
-            sparklines.trials :
-            [0, 0, trVal];
+        // LARAVEL 12 FIX: Use Js::from for safe array passing
+        const sparklines = {{ Illuminate\Support\Js::from($sparklines ?? []) }};
+        
+        // Safe fallbacks if data is empty
+        const sp1Data = (sparklines.tenants && sparklines.tenants.length >= 3) ? sparklines.tenants : [0, tVal/2, tVal];
+        const sp2Data = (sparklines.active && sparklines.active.length >= 3) ? sparklines.active : [0, aVal/2, aVal];
+        const sp3Data = (sparklines.bookings && sparklines.bookings.length >= 3) ? sparklines.bookings : [0, bVal/2, bVal];
+        const sp4Data = (sparklines.trials && sparklines.trials.length >= 3) ? sparklines.trials : [0, trVal/2, trVal];
 
         createMiniSparkline('sp1', sp1Data, colors.gold);
         createMiniSparkline('sp2', sp2Data, colors.emerald);
         createMiniSparkline('sp3', sp3Data, colors.purple);
         createMiniSparkline('sp4', sp4Data, colors.amber);
-        // ==========================================
-        // MAIN GROWTH CHART
-        // ==========================================
-        const growthRaw = @json($monthlyGrowth ?? []);
-        const growthLabels = Object.keys(growthRaw).length > 0 ? Object.keys(growthRaw) : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
-        const growthValues = Object.values(growthRaw).length > 0 ? Object.values(growthRaw) : [0, 0, 0, 0, 0, 0];
 
-        const growthCtx = document.getElementById('growthChart');
-        if (growthCtx) {
-            new Chart(growthCtx.getContext('2d'), {
-                type: 'line'
-                , data: {
-                    labels: growthLabels
-                    , datasets: [{
-                        label: 'New Tenants'
-                        , data: growthValues
-                        , borderColor: colors.gold
-                        , backgroundColor: 'rgba(201, 169, 110, 0.05)'
-                        , borderWidth: 2
-                        , fill: true
-                        , tension: 0.4
-                        , pointBackgroundColor: colors.gold
-                        , pointRadius: 4
+        // ==========================================
+        // MAIN GROWTH CHART (PREMIUM STYLING)
+        // ==========================================
+        // LARAVEL 12 FIX: Use Js::from
+        const growthRaw = {{ Illuminate\Support\Js::from($monthlyGrowth ?? []) }};
+        const growthLabels = Object.keys(growthRaw).length > 0 ? Object.keys(growthRaw) : ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun'];
+        const growthValues = Object.values(growthRaw).length > 0 ? Object.values(growthRaw) : [0, 2, 5, 4, 8, 12]; // Default curve
+
+        const growthCanvas = document.getElementById('growthChart');
+        if (growthCanvas) {
+            const ctx = growthCanvas.getContext('2d');
+            
+            // Create Premium Gold Gradient
+            let gradient = ctx.createLinearGradient(0, 0, 0, 220);
+            gradient.addColorStop(0, 'rgba(212, 175, 55, 0.4)');
+            gradient.addColorStop(1, 'rgba(212, 175, 55, 0.0)');
+
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: growthLabels,
+                    datasets: [{
+                        label: 'New Tenants',
+                        data: growthValues,
+                        borderColor: colors.gold,
+                        backgroundColor: gradient,
+                        borderWidth: 3,
+                        fill: true,
+                        tension: 0.4, // Smooth curves
+                        pointBackgroundColor: colors.bgDark,
+                        pointBorderColor: colors.gold,
+                        pointBorderWidth: 2,
+                        pointRadius: 4,
+                        pointHoverRadius: 6
                     }]
-                }
-                , options: {
-                    responsive: true
-                    , maintainAspectRatio: false
-                    , plugins: {
-                        legend: {
-                            display: false
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: colors.tooltipBg,
+                            titleColor: colors.gold,
+                            bodyColor: '#fff',
+                            borderColor: gridColor,
+                            borderWidth: 1,
+                            padding: 10,
+                            displayColors: false
                         }
-                    }
-                    , scales: {
+                    },
+                    scales: {
                         x: {
-                            grid: {
-                                display: false
-                            }
-                            , ticks: {
-                                color: 'rgba(255,255,255,0.42)'
-                                , font: {
-                                    size: 10
-                                }
-                            }
-                        }
-                        , y: {
-                            beginAtZero: true
-                            , suggestedMax: 10
-                            , grid: {
-                                color: gridColor
-                            }
-                            , ticks: {
-                                color: 'rgba(255,255,255,0.42)'
-                                , stepSize: 1
-                                , precision: 0
-                                , font: {
-                                    size: 10
-                                }
-                            }
+                            grid: { display: false, drawBorder: false },
+                            ticks: { color: 'rgba(255,255,255,0.42)', font: { size: 10 } }
+                        },
+                        y: {
+                            beginAtZero: true,
+                            suggestedMax: Math.max(...growthValues) + 2,
+                            grid: { color: gridColor, drawBorder: false },
+                            ticks: { color: 'rgba(255,255,255,0.42)', stepSize: 1, font: { size: 10 } }
                         }
                     }
                 }
@@ -369,31 +365,39 @@
         }
 
         // ==========================================
-        // PLAN DISTRIBUTION CHART
+        // PLAN DISTRIBUTION CHART (MODERN DONUT)
         // ==========================================
-        const planRaw = @json($planDistribution ?? []);
-        const planLabels = Object.keys(planRaw).length > 0 ? Object.keys(planRaw).map(p => p.charAt(0).toUpperCase() + p.slice(1)) : ['Free', 'Basic', 'Premium'];
-        const planValues = Object.values(planRaw).length > 0 ? Object.values(planRaw) : [1, 1, 1];
+        // LARAVEL 12 FIX: Use Js::from
+        const planRaw = {{ Illuminate\Support\Js::from($planDistribution ?? []) }};
+        const planLabels = Object.keys(planRaw).length > 0 ? Object.keys(planRaw).map(p => p.charAt(0).toUpperCase() + p.slice(1)) : ['Premium', 'Basic', 'Free'];
+        const planValues = Object.values(planRaw).length > 0 ? Object.values(planRaw) : [3, 2, 1]; // Default data to show chart
 
-        const planCtx = document.getElementById('planChart');
-        if (planCtx) {
-            new Chart(planCtx.getContext('2d'), {
-                type: 'doughnut'
-                , data: {
-                    labels: planLabels
-                    , datasets: [{
-                        data: planValues
-                        , backgroundColor: [colors.teal, colors.purple, colors.gold]
-                        , borderWidth: 0
+        const planCanvas = document.getElementById('planChart');
+        if (planCanvas) {
+            new Chart(planCanvas.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: planLabels,
+                    datasets: [{
+                        data: planValues,
+                        backgroundColor: [colors.gold, colors.purple, colors.teal],
+                        borderWidth: 3,
+                        borderColor: colors.bgDark, // Makes slices look separated perfectly
+                        hoverOffset: 4
                     }]
-                }
-                , options: {
-                    responsive: true
-                    , maintainAspectRatio: false
-                    , cutout: '75%'
-                    , plugins: {
-                        legend: {
-                            display: false
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '80%', // Thin luxury ring
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: colors.tooltipBg,
+                            bodyColor: '#fff',
+                            borderColor: gridColor,
+                            borderWidth: 1,
+                            padding: 10
                         }
                     }
                 }
@@ -401,42 +405,25 @@
         }
     });
 
+    // Clock Logic
     function updateClock() {
         const now = new Date();
-        const options = {
-            weekday: 'long'
-            , day: '2-digit'
-            , month: 'short'
-            , year: 'numeric'
-            , hour: '2-digit'
-            , minute: '2-digit'
-            , hour12: false
-        };
-        document.getElementById('live-clock').textContent =
-            now.toLocaleDateString('en-IN', options).replace(',', ' ·');
+        const options = { weekday: 'long', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false };
+        document.getElementById('live-clock').textContent = now.toLocaleDateString('en-IN', options).replace(',', ' ·');
     }
     updateClock();
     setInterval(updateClock, 1000);
 
-    // Har 60 second me bookings today update karo
+    // Live Stats Refresh
     function refreshLiveStats() {
         fetch('{{ route("superadmin.stats.live") }}')
             .then(res => res.json())
             .then(data => {
-                // Active salons
-                document.getElementById('stat-active-salons').textContent =
-                    data.active_tenants + ' active salons';
-                // Bookings today
-                document.getElementById('stat-bookings-today').innerHTML =
-                    '<i class="bi bi-calendar-check"></i> ' + data.total_bookings_today + ' bookings today';
-                // Revenue
-                document.getElementById('stat-revenue-month').innerHTML =
-                    '<i class="bi bi-currency-rupee"></i> ' +
-                    parseInt(data.platform_revenue_month).toLocaleString('en-IN') + ' this month';
+                document.getElementById('stat-active-salons').textContent = data.active_tenants + ' active salons';
+                document.getElementById('stat-revenue-month').innerHTML = '<i class="bi bi-currency-rupee"></i> ' + parseInt(data.platform_revenue_month).toLocaleString('en-IN') + ' this month';
             })
             .catch(err => console.log('Stats refresh failed:', err));
     }
-
     setInterval(refreshLiveStats, 60000);
 
 </script>

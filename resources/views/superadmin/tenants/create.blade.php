@@ -674,22 +674,21 @@
     };
 
     function goTo(n) {
-        // NEW LOGIC: Validation check before moving to the next step
+
         if (n > currentStep) {
             let isValid = true;
             const currentPanel = document.getElementById('panel-' + currentStep);
 
-            // Find all required inputs/selects/textareas in the current panel
             const requiredInputs = currentPanel.querySelectorAll('input[required], select[required], textarea[required]');
 
             requiredInputs.forEach(input => {
                 if (!input.checkValidity()) {
-                    input.reportValidity(); // This shows the browser's default "Please fill out this field" tooltip
+                    input.reportValidity(); 
                     isValid = false;
                 }
             });
 
-            if (!isValid) return; // Stop the function here if validation fails
+            if (!isValid) return;
         }
 
         // Hide current, show next
@@ -729,7 +728,7 @@
     }
 
     // Slug auto-generate from name
-    document.getElementById('salonName') ? .addEventListener('input', function() {
+    document.getElementById('salonName')?.addEventListener('input', function() {
         const slug = this.value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
         const slugInput = document.getElementById('slugInput');
         if (slugInput && !slugInput.dataset.manual) {
@@ -737,7 +736,7 @@
             document.getElementById('slugPreview').textContent = slug ? slug + '.lumiere.app' : '__.lumiere.app';
         }
     });
-    document.getElementById('slugInput') ? .addEventListener('input', function() {
+    document.getElementById('slugInput')?.addEventListener('input', function() {
         this.dataset.manual = '1';
         const val = this.value.toLowerCase().replace(/[^a-z0-9-]/g, '');
         this.value = val;

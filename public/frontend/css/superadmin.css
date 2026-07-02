@@ -195,10 +195,10 @@
     background: rgba(10, 10, 12, 0.85);
     backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border);
-    padding: 0 2rem;
     display: flex;
     align-items: center;
-    gap: 1.5rem;
+    padding: 0 1rem !important;
+    gap: 0.5rem !important;
 }
 .sa-topbar-title {
     font-family: var(--ff-display);
@@ -237,7 +237,7 @@
 }
 .sa-topbar-search i {
     position: absolute;
-    left: 0.85rem;
+    left: 1rem;
     top: 50%;
     transform: translateY(-50%);
     color: var(--text-3);
@@ -302,9 +302,17 @@
     color: var(--teal-light);
     border: 1px solid rgba(58, 158, 141, 0.15);
 }
-.plan-basic{background:var(--purple-dim);color:#a78bfa;border:1px solid rgba(167,139,250,0.15);}
+.plan-basic {
+    background: var(--purple-dim);
+    color: #a78bfa;
+    border: 1px solid rgba(167, 139, 250, 0.15);
+}
 
-.plan-premium{background:var(--gold-dim);color:var(--gold);border:1px solid rgba(201,169,110,0.2);}
+.plan-premium {
+    background: var(--gold-dim);
+    color: var(--gold);
+    border: 1px solid rgba(201, 169, 110, 0.2);
+}
 
 .status-badge {
     display: inline-flex;
@@ -376,6 +384,10 @@
 
 /* RESPONSIVE */
 @media (max-width: 992px) {
+    body {
+        overflow-x: hidden;
+        overflow-y: auto;
+    }
     .sa-sidebar {
         transform: translateX(-100%);
     }
@@ -390,5 +402,78 @@
     }
     .sa-content {
         padding: 1.2rem;
+    }
+    .sa-topbar-search i {
+        left: 1.7rem;
+    }
+    /* Title truncate + hide subtitle/breadcrumb on mobile */
+    .sa-topbar-title {
+        font-size: 1rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 130px;
+    }
+    .sa-topbar-sub {
+        display: none;
+    }
+    .sa-topbar nav[aria-label="Breadcrumb"] {
+        display: none;
+    }
+
+    /* CTA button (Provision New Tenant Node etc.) becomes icon-only on mobile */
+    .sa-topbar-actions .btn-lux-gold,
+    .sa-topbar-actions .btn-lux-ghost:not(.notif-mark-btn),
+    .sa-topbar-actions .btn-lux-danger {
+        padding: 0.55rem !important;
+        font-size: 0 !important;
+        white-space: nowrap;
+    }
+    .sa-topbar-actions .btn-lux-gold i,
+    .sa-topbar-actions .btn-lux-ghost i,
+    .sa-topbar-actions .btn-lux-danger i {
+        font-size: 1rem !important;
+    }
+    .sa-topbar-actions .notif-mark-btn {
+        font-size: 0.65rem !important;
+        padding: 0.35rem 0.6rem !important;
+    }
+
+    /* Search bar hidden by default on mobile, replaced by the search icon button */
+    .sa-topbar-search {
+        display: none;
+        position: fixed;
+        top: var(--topbar-h);
+        left: 0;
+        right: 0;
+        max-width: none;
+        margin: 0;
+        padding: 0.9rem 1rem;
+        background: rgba(9, 9, 11, 0.97);
+        backdrop-filter: blur(20px);
+        -webkit-backdrop-filter: blur(20px);
+        border-bottom: 1px solid var(--border);
+        z-index: 250;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .sa-topbar-search.mobile-active {
+        display: flex;
+    }
+    .sa-topbar-search.mobile-active input {
+        font-size: 1rem;
+        flex: 1;
+        width: auto;
+    } /* 16px avoids iOS zoom */
+    .sa-mobile-search-toggle {
+        display: flex !important;
+    }
+
+    #notif-dropdown {
+        position: fixed !important;
+        left: 1rem !important;
+        right: 1rem !important;
+        width: auto !important;
+        top: var(--topbar-h) !important;
     }
 }

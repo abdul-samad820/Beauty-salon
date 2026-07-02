@@ -143,6 +143,28 @@
         // PREMIUM NOTIFICATION SYSTEM
         // ==========================================
 
+        // Mobile search overlay toggle — same button icon swaps search <-> close
+        function toggleMobileSearch() {
+            const form = document.getElementById('topbarSearchForm');
+            const input = document.getElementById('topbarSearchInput');
+            const btn = document.getElementById('mobile-search-btn');
+            const icon = btn ? btn.querySelector('i') : null;
+            if (!form) return;
+
+            const isOpen = form.classList.contains('mobile-active');
+
+            if (!isOpen) {
+                form.classList.add('mobile-active');
+                if (icon) { icon.classList.remove('bi-search'); icon.classList.add('bi-x-lg'); }
+                if (btn) btn.setAttribute('aria-label', 'Close search');
+                setTimeout(() => input && input.focus(), 50);
+            } else {
+                form.classList.remove('mobile-active');
+                if (icon) { icon.classList.remove('bi-x-lg'); icon.classList.add('bi-search'); }
+                if (btn) btn.setAttribute('aria-label', 'Open search');
+            }
+        }
+
         function toggleNotifications() {
             const dropdown = document.getElementById('notif-dropdown');
             if (!dropdown) return;

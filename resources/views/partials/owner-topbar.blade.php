@@ -1,7 +1,7 @@
 <header class="lm-topbar" role="banner">
 
     {{-- Mobile Sidebar Toggle --}}
-    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle structural workspace sidebar" aria-controls="sidebar" style="display: none; background: transparent; border: none; color: var(--text); font-size: 1.4rem; padding: 0; margin-right: 1rem;">
+    <button class="sidebar-toggle" id="sidebarToggle" aria-label="Toggle structural workspace sidebar" aria-controls="sidebar" style="background: transparent; border: none; color: var(--text); font-size: 1.4rem; padding: 0; margin-right: 1rem;">
         <i class="bi bi-list" aria-hidden="true"></i>
     </button>
 
@@ -27,14 +27,19 @@
         </div>
     </div>
 
-    {{-- Global Search Bar --}}
-    <form class="topbar-search" action="#" method="GET" role="search">
+    {{-- Global Search Bar (desktop: inline / mobile: overlay, toggled via the search icon button below) --}}
+    <form class="topbar-search" id="topbarSearchForm" action="#" method="GET" role="search">
         <i class="bi bi-search" aria-hidden="true"></i>
-        <input type="search" placeholder="Search workspace nodes, clients profiles, bills..." aria-label="Global tracking system engine search input" />
+        <input type="search" id="topbarSearchInput" placeholder="Search workspace nodes, clients profiles, bills..." aria-label="Global tracking system engine search input" />
     </form>
 
     {{-- Actions & Notifications --}}
     <div style="display:flex; align-items:center; gap:0.75rem; margin-left: 1rem;" role="toolbar" aria-label="Page controls actions terminal">
+
+        {{-- MOBILE-ONLY SEARCH TOGGLE (icon swaps between search / close) --}}
+        <button type="button" id="mobile-search-btn" class="mobile-search-toggle" aria-label="Open search" onclick="toggleMobileSearch()" style="display:none; width: 42px; height: 42px; border-radius: 12px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); color: var(--text-2); align-items: center; justify-content: center; cursor: pointer;">
+            <i class="bi bi-search" style="font-size: 1.05rem;"></i>
+        </button>
 
         {{-- ADVANCED PREMIUM NOTIFICATION BELL --}}
         <div style="position:relative; display: inline-block;" id="notif-wrapper">
@@ -71,10 +76,9 @@
                 </div>
             </div>
         </div>
-
-        <div style="display:flex; align-items:center; gap:0.5rem;">
-            @yield('topbar-actions')
-        </div>
+<div class="topbar-cta-slot" style="display:flex; align-items:center; gap:0.5rem;">
+    @yield('topbar-actions')
+</div>
     </div>
 
 </header>

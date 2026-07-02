@@ -163,7 +163,7 @@
 
     @if($appointments->hasPages())
     <div class="border-top" style="border-color: var(--border) !important; padding: 1.5rem;">
-        {{ $appointments->links('pagination::bootstrap-5') }}
+    <x-tables.pagination :paginator="$appointments" />
     </div>
     @endif
 </div>

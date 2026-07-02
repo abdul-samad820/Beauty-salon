@@ -83,8 +83,8 @@
                 if (!input) return;
                 const isPass = input.type === 'password';
                 input.type = isPass ? 'text' : 'password';
-                icon ? .classList.toggle('bi-eye', !isPass);
-                icon ? .classList.toggle('bi-eye-slash', isPass);
+                icon?.classList.toggle('bi-eye', !isPass);
+                icon?.classList.toggle('bi-eye-slash', isPass);
             });
         });
     });

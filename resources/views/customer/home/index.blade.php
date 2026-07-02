@@ -416,8 +416,8 @@
         });
     });
 
-    document.getElementById('datePicker') ? .addEventListener('change', updateProgress);
-    document.getElementById('f_payment') ? .addEventListener('change', updateProgress);
+    document.getElementById('datePicker')?.addEventListener('change', updateProgress);
+    document.getElementById('f_payment')?.addEventListener('change', updateProgress);
 
     document.addEventListener('click', function(e) {
         if (e.target.closest('.staff-chip, .pay-chip, .slot-btn, #svcGrid article')) {

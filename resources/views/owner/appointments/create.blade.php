@@ -183,8 +183,8 @@
 
         function updatePreview() {
             const opt = serviceSelect.options[serviceSelect.selectedIndex];
-            const duration = parseInt(opt ? .dataset ? .duration || 0);
-            const price = parseFloat(opt ? .dataset ? .price || 0);
+            const duration = parseInt(opt?.dataset?.duration || 0);
+            const price = parseFloat(opt?.dataset?.price || 0);
             const start = startTimeInput.value;
 
             if (!duration || !start) {

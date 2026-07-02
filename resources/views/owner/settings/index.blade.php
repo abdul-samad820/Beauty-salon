@@ -76,10 +76,10 @@
                 <div style="display: flex; flex-direction: column; gap: 0.8rem;">
                     @foreach($days as $key => $dayName)
                     @php $val = $hours[$key] ?? null; @endphp
-                    <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: var(--r-md);">
+                   <div class="wh-row" style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem 1rem; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: var(--r-md);">
 
                         <!-- Day & Toggle Switch -->
-                        <div style="display: flex; align-items: center; gap: 1rem; width: 140px;">
+                       <div class="wh-day" style="display: flex; align-items: center; gap: 1rem; width: 140px;">
                             <label class="lux-switch">
                                 <input type="checkbox" name="days[{{ $key }}][open]" value="1" class="day-toggle" data-day="{{ $key }}" {{ $val ? 'checked' : '' }} aria-label="{{ $dayName }} operational status" />
                                 <span class="lux-slider"></span>
@@ -88,7 +88,7 @@
                         </div>
 
                         <!-- Time Inputs Container -->
-                        <div id="hours_{{ $key }}" style="display: flex; align-items: center; gap: 0.5rem; transition: opacity 0.3s; opacity: {{ $val ? '1' : '0.3' }}; pointer-events: {{ $val ? 'auto' : 'none' }}; flex: 1;">
+                      <div id="hours_{{ $key }}" class="wh-times" style="display: flex; align-items: center; gap: 0.5rem; transition: opacity 0.3s; opacity: {{ $val ? '1' : '0.3' }}; pointer-events: {{ $val ? 'auto' : 'none' }}; flex: 1;">
                             <input type="time" name="days[{{ $key }}][open_time]" value="{{ $val ? explode('-', $val)[0] : '09:00' }}" class="lux-input" style="color-scheme: dark; font-size: 0.75rem; padding: 0.4rem 0.5rem;" aria-label="{{ $dayName }} opening time" />
                             <span style="font-size: 0.7rem; color: var(--text-3);">to</span>
                             <input type="time" name="days[{{ $key }}][close_time]" value="{{ $val ? explode('-', $val)[1] ?? '18:00' : '18:00' }}" class="lux-input" style="color-scheme: dark; font-size: 0.75rem; padding: 0.4rem 0.5rem;" aria-label="{{ $dayName }} closing time" />

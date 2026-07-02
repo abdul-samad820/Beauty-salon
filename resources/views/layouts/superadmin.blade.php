@@ -86,12 +86,17 @@
                 @endif
             </div>
 
-            <form class="sa-topbar-search" action="{{ route('superadmin.tenants.index') }}" method="GET" role="search">
+            <form class="sa-topbar-search" id="saTopbarSearchForm" action="{{ route('superadmin.tenants.index') }}" method="GET" role="search">
                 <i class="bi bi-search" aria-hidden="true"></i>
-                <input type="search" name="search" value="{{ request('search') }}" placeholder="Search tenants, metrics…" aria-label="Search platform records" />
+                <input type="search" id="saTopbarSearchInput" name="search" value="{{ request('search') }}" placeholder="Search tenants, metrics…" aria-label="Search platform records" />
             </form>
 
             <div class="sa-topbar-actions" role="toolbar" aria-label="Dashboard actions">
+
+                {{-- MOBILE-ONLY SEARCH TOGGLE (icon swaps between search / close) --}}
+                <button type="button" id="sa-mobile-search-btn" class="sa-icon-btn sa-mobile-search-toggle" aria-label="Open search" onclick="toggleSaMobileSearch()" style="display:none;">
+                    <i class="bi bi-search"></i>
+                </button>
 
                 {{-- REFINED PREMIUM NOTIFICATION BELL --}}
                 <div style="position:relative;" id="notif-wrapper">
@@ -111,7 +116,7 @@
                         {{-- Header --}}
                         <div style="display:flex; justify-content:space-between; align-items:center; padding: 1.2rem; border-bottom: 1px solid rgba(255,255,255,0.05); background: linear-gradient(180deg, rgba(201, 169, 110, 0.05) 0%, transparent 100%);">
                             <span class="serif" style="font-size:1.1rem; color:var(--text); font-weight: 600;">Notifications</span>
-                            <button onclick="markAllRead()" class="btn-lux-ghost" style="font-size:0.7rem; padding: 0.3rem 0.6rem; height: auto;">Mark all read</button>
+                            <button onclick="markAllRead()" class="btn-lux-ghost notif-mark-btn" style="font-size:0.7rem; padding: 0.3rem 0.6rem; height: auto;">Mark all read</button>
                         </div>
 
                         {{-- Notification List --}}
@@ -154,6 +159,28 @@
         }
 
         let notifLoaded = false;
+
+        // Mobile search overlay toggle — same button icon swaps search <-> close
+        function toggleSaMobileSearch() {
+            const form = document.getElementById('saTopbarSearchForm');
+            const input = document.getElementById('saTopbarSearchInput');
+            const btn = document.getElementById('sa-mobile-search-btn');
+            const icon = btn ? btn.querySelector('i') : null;
+            if (!form) return;
+
+            const isOpen = form.classList.contains('mobile-active');
+
+            if (!isOpen) {
+                form.classList.add('mobile-active');
+                if (icon) { icon.classList.remove('bi-search'); icon.classList.add('bi-x-lg'); }
+                if (btn) btn.setAttribute('aria-label', 'Close search');
+                setTimeout(() => input && input.focus(), 50);
+            } else {
+                form.classList.remove('mobile-active');
+                if (icon) { icon.classList.remove('bi-x-lg'); icon.classList.add('bi-search'); }
+                if (btn) btn.setAttribute('aria-label', 'Open search');
+            }
+        }
 
         function toggleNotifications() {
             const dropdown = document.getElementById('notif-dropdown');

@@ -118,7 +118,7 @@
     <!-- ==================== STATISTICS ==================== -->
     <section id="stats" class="section-pad-sm">
         <div class="container">
-            <div class="row align-items-center justify-content-center flex-nowrap">
+            <div class="row align-items-center justify-content-center">
                 <div class="col-6 col-md-3 reveal reveal-delay-1">
                     <div class="stat-item">
                         <div class="stat-num"><span class="counter" data-target="{{ $totalAppointments }}">0</span><span class="suffix">+</span></div>

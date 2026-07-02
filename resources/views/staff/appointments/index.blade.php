@@ -20,7 +20,7 @@
 
 {{-- Appointments Table --}}
 <div class="card-lux fade-up s3">
-    <div class="lux-table-wrapper lux-scroller" style="max-height: 500px; overflow-y: auto;">
+<div class="lux-table-wrapper lux-scroller" style="max-height: 500px; overflow-y: auto; overflow-x: auto;">
         <table class="lux-table">
             <thead style="position: sticky; top: 0; background: var(--bg-card); z-index: 10; border-bottom: 1px solid var(--border);">
                 <tr>

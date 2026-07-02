@@ -348,7 +348,6 @@
                     @forelse($tenant->appointments->take(15) as $appt)
                     <tr>
                         <td style="color:var(--text);">{{ $appt->customer->name ?? '—' }}</td>
-                        <td style="color:var(--text);">{{ $appt->customer->name ?? '—' }}</td>
                         <td>{{ $appt->service->name ?? '—' }}</td>
                         <td>{{ \Carbon\Carbon::parse($appt->appointment_date)->format('d M Y') }}</td>
                         <td>{{ \Carbon\Carbon::parse($appt->start_time)->format('h:i A') }}</td>

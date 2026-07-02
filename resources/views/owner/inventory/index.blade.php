@@ -32,7 +32,7 @@
 </style>
 @endpush
 @section('topbar-actions')
-<a href="{{ route('owner.inventory.valuation') }}" class="btn-sm" style="padding: 0.5rem 1rem; border-radius: var(--r-md); background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-2); text-decoration: none; margin-right: 0.5rem;">
+<a href="{{ route('owner.inventory.valuation') }}" class="btn-lux-ghost btn-sm" style="padding: 0.5rem 1rem; border-radius: var(--r-md); background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-2); text-decoration: none;">
     <i class="bi bi-clipboard-data me-1"></i> Valuation Report
 </a>
 <button class="btn-lux-gold btn-sm" onclick="openAddProductModal()">
@@ -79,7 +79,7 @@
 
 <!-- Data Table Mesh -->
 <div class="card-lux fade-up s3">
-    <div class="lux-table-wrapper lux-scroller" style="max-height: 500px; overflow-y: auto;">
+<div class="lux-table-wrapper lux-scroller" style="max-height: 500px; overflow-y: auto; overflow-x: auto;">
         <table class="lux-table">
             <thead>
                 <tr>
