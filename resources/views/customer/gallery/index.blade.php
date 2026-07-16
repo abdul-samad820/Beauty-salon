@@ -29,8 +29,8 @@
             {{-- Masonry Grid --}}
             <div class="masonry-grid">
                 @foreach($gallery as $image)
-                <div class="masonry-item" onclick="openLightbox('{{ asset('storage/'.$image->image) }}', '{{ $image->caption ?? '' }}')">
-                    <img src="{{ asset('storage/'.$image->image) }}" alt="{{ $image->caption ?? 'Gallery Image' }}" loading="lazy" />
+              <div class="masonry-item" onclick="openLightbox('{{ Storage::disk('cloudinary')->url($image->image) }}', '{{ $image->caption ?? '' }}')">
+    <img src="{{ Storage::disk('cloudinary')->url($image->image) }}" alt="{{ $image->caption ?? 'Gallery Image' }}" loading="lazy" />
 
                     {{-- Hover Overlay --}}
                     <div class="gallery-overlay">

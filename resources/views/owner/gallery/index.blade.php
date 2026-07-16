@@ -28,7 +28,7 @@
 
             <div class="gallery-card">
                 {{-- Image --}}
-                <img src="{{ asset('storage/'.$image->image) }}" alt="{{ $image->caption ?? 'Gallery Image' }}" />
+                <img src="{{ Storage::disk('cloudinary')->url($image->image) }}" alt="{{ $image->caption ?? 'Gallery Image' }}" />
 
                 {{-- Hover Overlay --}}
                 <div class="gallery-overlay">

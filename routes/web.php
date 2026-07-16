@@ -37,6 +37,7 @@ use App\Http\Controllers\Web\Owner\StaffWebController;
 use App\Http\Controllers\Web\Staff\StaffDashboardController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -304,7 +305,7 @@ Route::prefix('{subdomain}')
                 ->name('customer.payment.create-order');
 
             Route::post('/appointments/{appointmentId}/payment/verify', [CustomerPaymentController::class, 'verifyPayment'])
-                 ->name('customer.payment.verify');
+                ->name('customer.payment.verify');
             Route::get('/appointments', [CustomerAppointmentController::class, 'index'])->name('customer.appointments');
             Route::post('/appointments/{id}/cancel', [CustomerAppointmentController::class, 'cancel'])->name('customer.appointments.cancel');
 
@@ -322,3 +323,12 @@ Route::prefix('{subdomain}')
                 ->name('customer.invoice.download');
         });
     });
+
+Route::get('/cron/run-schedule/{token}', function ($token) {
+    if ($token !== env('CRON_SECRET')) {
+        abort(403, 'Unauthorized');
+    }
+    Artisan::call('schedule:run');
+
+    return response('Scheduler executed at '.now(), 200);
+});

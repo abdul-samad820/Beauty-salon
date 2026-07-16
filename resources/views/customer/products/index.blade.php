@@ -28,7 +28,7 @@
                 {{-- Image Container --}}
                 <div style="height: 240px; background: rgba(255,255,255,0.02); display: flex; align-items: center; justify-content: center; position: relative; overflow: hidden;">
                     @if($product->image)
-                    <img src="{{ asset('storage/'.$product->image) }}" alt="{{ $product->name }}" class="product-img" style="width: 100%; height: 100%; object-fit: cover;" />
+                    <img src="{{ Storage::disk('cloudinary')->url($product->image) }}" alt="{{ $product->name }}" class="product-img" style="width: 100%; height: 100%; object-fit: cover;" />
                     @else
                     <i class="bi bi-box-seam faint" style="font-size: 3rem; opacity: 0.3;"></i>
                     @endif

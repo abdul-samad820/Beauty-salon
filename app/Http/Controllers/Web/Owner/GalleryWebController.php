@@ -35,7 +35,7 @@ class GalleryWebController extends Controller
             return back()->withErrors(['image' => 'Uploaded file is not a valid image.']);
         }
 
-        $path = $request->file('image')->store('gallery', 'public');
+        $path = $request->file('image')->store('gallery', 'cloudinary');
 
         GalleryImage::create([
             'tenant_id' => $tenant->id,
@@ -53,7 +53,7 @@ class GalleryWebController extends Controller
         $tenant = app('currentTenant');
         $image = GalleryImage::where('tenant_id', $tenant->id)->findOrFail($id);
 
-        \Storage::disk('public')->delete($image->image);
+        \Storage::disk('cloudinary')->delete($image->image);
         $image->delete();
 
         return back()->with('success', 'Image deleted successfully.');

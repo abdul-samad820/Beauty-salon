@@ -29,9 +29,9 @@ class ServiceWebController extends Controller
         $services = $query->orderBy('name')->paginate(15);
 
         $counts = Service::where('tenant_id', $tenant->id)
-                   ->selectRaw('is_active, COUNT(*) as count')
-                   ->groupBy('is_active')
-                   ->pluck('count', 'is_active');
+            ->selectRaw('is_active, COUNT(*) as count')
+            ->groupBy('is_active')
+            ->pluck('count', 'is_active');
 
         $stats = [
             'total' => $counts->sum(),

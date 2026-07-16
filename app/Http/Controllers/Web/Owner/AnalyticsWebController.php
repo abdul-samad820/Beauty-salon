@@ -88,12 +88,12 @@ class AnalyticsWebController extends Controller
                 }
 
                 $customerRows = User::where('tenant_id', $tenant->id)
-                       ->whereHas('roles', fn ($q) => $q->where('name', 'customer')->where('guard_name', 'customer'))
-                       ->where('created_at', '>=', $from6Months)
-                       ->selectRaw("DATE_FORMAT(created_at, '%b') as month, COUNT(*) as total")
-                       ->groupByRaw("DATE_FORMAT(created_at, '%b'), YEAR(created_at), MONTH(created_at)")
-                       ->orderByRaw('YEAR(created_at), MONTH(created_at)')
-                       ->pluck('total', 'month');
+                    ->whereHas('roles', fn ($q) => $q->where('name', 'customer')->where('guard_name', 'customer'))
+                    ->where('created_at', '>=', $from6Months)
+                    ->selectRaw("DATE_FORMAT(created_at, '%b') as month, COUNT(*) as total")
+                    ->groupByRaw("DATE_FORMAT(created_at, '%b'), YEAR(created_at), MONTH(created_at)")
+                    ->orderByRaw('YEAR(created_at), MONTH(created_at)')
+                    ->pluck('total', 'month');
 
                 $monthlyCustomers = [];
                 for ($i = 5; $i >= 0; $i--) {

@@ -42,10 +42,10 @@ class ProfileController extends Controller
         if ($request->hasFile('profile_photo')) {
             // Purani photo delete karo
             if ($user->profile_photo) {
-                \Storage::disk('public')->delete($user->profile_photo);
+                \Storage::disk('cloudinary')->delete($user->profile_photo);
             }
             $data['profile_photo'] = $request->file('profile_photo')
-                ->store('profile-photos', 'public');
+                ->store('profile-photos', 'cloudinary');
         }
 
         $user->update($data);
