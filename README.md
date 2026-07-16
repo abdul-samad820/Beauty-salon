@@ -20,6 +20,21 @@
 
 ---
 
+## 🔗 Live Demo
+
+**App**: https://beauty-salon-n94u.onrender.com
+**GitHub**: https://github.com/abdul-samad820/Beauty-salon
+
+| Role | URL | Credentials |
+|---|---|---|
+| Customer Portal | `/glamour/landing` | Register a new account, or ask for a test login |
+| Salon Owner | `/login` | Ask for a test account (email is pre-verified) |
+| Super Admin | `/login` | Ask for a test account |
+
+> ⚠️ Hosted on Render's free tier — the app sleeps after 15 minutes of inactivity, so the **first** request after a while may take 30–60 seconds to respond while it wakes up. Subsequent requests are fast.
+
+---
+
 ## 📖 Table of Contents
 
 - [Overview](#-overview)
@@ -31,7 +46,6 @@
 - [Roles & Guards](#-roles--guards)
 - [Quick Start](#-quick-start)
 - [Environment Setup](#-environment-setup)
-- [Local Subdomain Setup](#-local-subdomain-setup)
 - [Database & Seeding](#-database--seeding)
 - [Subscription Plans](#-subscription-plans)
 - [Queue Workers](#-queue-workers)
@@ -48,7 +62,7 @@
 
 ## 🌟 Overview
 
-**LUMIÈRE** is a fully multi-tenant SaaS platform purpose-built for beauty parlours and salons. Every salon runs on its own isolated subdomain (e.g., `naturelle.lumiere.app`) with completely separate data, staff, customers, appointments, inventory, and settings — zero cross-tenant leakage by design.
+**LUMIÈRE** is a fully multi-tenant SaaS platform purpose-built for beauty parlours and salons. Every salon is isolated by a `{subdomain}` route segment (e.g., `lumiere.app/naturelle`) with completely separate data, staff, customers, appointments, inventory, and settings — zero cross-tenant leakage by design. (Path-based tenant resolution was chosen over DNS-level subdomains so the app works out of the box on any host, including free-tier platforms without wildcard DNS.)
 
 A **Super Admin** governs the entire platform — provisioning tenants, managing subscription plans, and monitoring platform-wide revenue and analytics. Each **Salon Owner** independently operates their full business: appointments, inventory, staff commissions, customer reviews, and subscription billing — all within their isolated workspace.
 
@@ -72,23 +86,23 @@ lumiere.app                          ← Super Admin Platform Console
   ├── /superadmin/queue              ← Background job queue monitor
   └── /superadmin/settings           ← Platform settings & cache management
 
-naturelle.lumiere.app                ← Tenant Workspace (Salon 1)
+lumiere.app/naturelle                ← Tenant Workspace (Salon 1)
   ├── /owner/dashboard               ← Salon management panel
   ├── /landing                       ← Public-facing salon landing page
-  ├── /login  /register              ← Customer auth (subdomain-scoped)
+  ├── /login  /register              ← Customer auth (tenant-scoped)
   └── /  (customer portal)           ← Booking, appointments, reviews
 
-bliss.lumiere.app                    ← Tenant Workspace (Salon 2 — fully isolated)
+lumiere.app/bliss                    ← Tenant Workspace (Salon 2 — fully isolated)
 ```
 
 ### Multi-Tenancy Request Flow
 
 ```
-Incoming Request (subdomain.lumiere.app)
+Incoming Request (lumiere.app/{subdomain}/...)
           ↓
   TenantMiddleware / CustomerTenantMiddleware
           ↓
-  Resolve subdomain → Fetch Tenant → Bind to app container
+  Resolve {subdomain} route segment → Fetch Tenant → Bind to app container
           ↓
   BelongsToTenant trait → Auto-scope all Eloquent queries to tenant_id
           ↓
@@ -179,8 +193,9 @@ Incoming Request (subdomain.lumiere.app)
 | **Backups** | Spatie Laravel Backup | 9.3 | Automated database backups |
 | **Frontend** | Blade + Bootstrap + Chart.js | — | Server-rendered UI with charts |
 | **Sessions** | Database-backed, encrypted | — | Secure, isolated session storage |
-| **Queue** | Laravel Database Queue | — | Async jobs for alerts & reminders |
-| **Email** | SMTP (configurable) | — | 4 transactional email templates |
+| **Queue & Cache** | Redis (Upstash in production) | — | Async jobs for alerts & reminders; falls back to `database` driver for local dev |
+| **Email** | SMTP via Brevo | — | 4 transactional email templates + auth verification/reset emails |
+| **File Storage** | Cloudinary | — | Persistent storage for gallery, product, and profile images (survives redeploys) |
 | **Testing** | PHPUnit 11 | — | 28 feature test suites, SQLite in-memory |
 
 ---
@@ -281,6 +296,9 @@ php artisan key:generate
 # Create the database
 mysql -u root -p -e "CREATE DATABASE lumiere;"
 
+# Generate the sessions table migration (required since SESSION_DRIVER=database)
+php artisan session:table
+
 # Run migrations and seeders
 php artisan migrate --seed
 ```
@@ -314,8 +332,7 @@ Key `.env` variables to configure:
 ```env
 APP_NAME=LUMIÈRE
 APP_ENV=local
-APP_URL=http://lumiere.test:8000
-APP_DOMAIN=lumiere.test
+APP_URL=http://127.0.0.1:8000
 
 DB_CONNECTION=mysql
 DB_HOST=127.0.0.1
@@ -326,40 +343,29 @@ DB_PASSWORD=
 
 SESSION_DRIVER=database
 SESSION_ENCRYPT=true
-SESSION_DOMAIN=.lumiere.test
 
 RAZORPAY_KEY_ID=your_razorpay_key
 RAZORPAY_KEY_SECRET=your_razorpay_secret
 
+# Transactional email — any SMTP provider works (Brevo used in production)
 MAIL_MAILER=smtp
-MAIL_HOST=smtp.mailtrap.io
+MAIL_HOST=smtp-relay.brevo.com
 MAIL_PORT=587
-MAIL_USERNAME=your_username
-MAIL_PASSWORD=your_password
-MAIL_FROM_ADDRESS=noreply@lumiere.app
+MAIL_USERNAME=your_brevo_smtp_login
+MAIL_PASSWORD=your_brevo_smtp_key
+MAIL_FROM_ADDRESS=your_verified_sender@example.com
 MAIL_FROM_NAME=LUMIÈRE
 
+# Queue & cache — defaults to database locally; production uses Redis (Upstash)
 QUEUE_CONNECTION=database
+CACHE_STORE=database
+# REDIS_CLIENT=predis
+# REDIS_HOST=your-upstash-endpoint
+# REDIS_PORT=6379
+# REDIS_PASSWORD=your_upstash_password
 ```
 
-> `SESSION_DOMAIN=.lumiere.test` (with leading dot) is required so session cookies are shared across all subdomains under the same root domain.
-
----
-
-## 🌐 Local Subdomain Setup
-
-Since LUMIÈRE uses subdomains for tenant isolation, you must add entries to your system hosts file for local development.
-
-**Windows:** `C:\Windows\System32\drivers\etc\hosts`  
-**Linux / macOS:** `/etc/hosts`
-
-```
-127.0.0.1   lumiere.test
-127.0.0.1   naturelle.lumiere.test
-127.0.0.1   bliss.lumiere.test
-```
-
-> For every new tenant you provision via the Super Admin panel, add its subdomain to the hosts file during local development.
+> Because tenants are resolved from the `{subdomain}` route segment (not real DNS subdomains), no hosts-file changes are needed for local development — `127.0.0.1:8000/naturelle`, `127.0.0.1:8000/bliss`, etc. work out of the box.
 
 ---
 
@@ -379,9 +385,9 @@ php artisan db:seed --class=DatabaseSeeder
 
 | Role | URL | Email | Password |
 |---|---|---|---|
-| Super Admin | `lumiere.test/superadmin/dashboard` | `superadmin@lumiere.app` | `password@123` |
-| Owner | `{subdomain}.lumiere.test/owner/dashboard` | *(seeded per tenant)* | `password@123` |
-| Customer | `{subdomain}.lumiere.test/login` | *(seeded per tenant)* | `password@123` |
+| Super Admin | `127.0.0.1:8000/superadmin/dashboard` | `superadmin@lumiere.app` | `password@123` |
+| Owner | `127.0.0.1:8000/{subdomain}/owner/dashboard` | *(seeded per tenant)* | `password@123` |
+| Customer | `127.0.0.1:8000/{subdomain}/login` | *(seeded per tenant)* | `password@123` |
 
 > ⚠️ Change all default passwords immediately in any non-local environment.
 
@@ -752,6 +758,6 @@ This project is licensed under the [MIT License](LICENSE).
 
 <div align="center">
 
-Built with ❤️ using **Laravel 12** · **PHP 8.2** · **MySQL 8.0** · **Razorpay**
+Built with ❤️
 
 </div>
