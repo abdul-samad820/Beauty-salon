@@ -16,8 +16,8 @@ return new class extends Migration
             $table->foreignId('tenant_id')->constrained('tenants')->cascadeOnDelete();
             $table->foreignId('staff_id')->constrained('staff')->cascadeOnDelete();
             $table->foreignId('appointment_id')->constrained('appointments')->cascadeOnDelete();
-            $table->decimal('service_price', 8, 2);      // Service ki total price
-            $table->decimal('commission_percent', 5, 2); // Staff ka %
+            $table->decimal('service_price', 8, 2);      // Service  total price
+            $table->decimal('commission_percent', 5, 2); // Staff  %
             $table->decimal('commission_amount', 8, 2);  // Actual amount
             $table->unique('appointment_id');
             $table->enum('status', ['pending', 'paid'])->default('pending');

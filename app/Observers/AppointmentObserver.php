@@ -181,7 +181,6 @@ class AppointmentObserver
                 continue;
             }
 
-            // FIXED SEC-023: Idempotency check verified within active row lock isolation context safely
             $alreadyDeducted = InventoryTransaction::where('product_id', $product->id)
                 ->where('type', 'appointment_deduct')
                 ->where('reference_id', $appointment->id)

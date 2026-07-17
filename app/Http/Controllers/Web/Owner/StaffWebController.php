@@ -138,7 +138,6 @@ class StaffWebController extends Controller
         DB::transaction(function () use ($staff) {
             if ($staff->user) {
                 $staff->user->update(['is_active' => false]);
-                // Turant session invalidate karo
                 DB::table('sessions')
                     ->where('user_id', $staff->user->id)
                     ->delete();

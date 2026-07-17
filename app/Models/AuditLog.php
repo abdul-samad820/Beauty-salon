@@ -26,7 +26,7 @@ class AuditLog extends Model
 
     // ── Relationships ──────────────────────────────────────────
 
-    // ── Helper — Record karo ───────────────────────────────────
+    // ── Helper — Record  ───────────────────────────────────
     public static function record(
         string $action,
         ?string $entityType = null,

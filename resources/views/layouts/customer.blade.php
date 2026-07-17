@@ -20,31 +20,61 @@
     <div class="orb orb-teal" aria-hidden="true"></div>
 
     {{-- Customer Navbar --}}
-    <nav class="cust-nav" aria-label="Customer Navigation">
-        <div>
-            <a href="{{ route('customer.home', $subdomain) }}" class="cust-nav-logo">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="34" height="34" aria-hidden="true">
+    <div class="cust-nav-wrap">
+        <nav class="cust-nav" aria-label="Customer Navigation">
+            <div>
+                <a href="{{ route('customer.home', $subdomain) }}" class="cust-nav-logo">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="34" height="34" aria-hidden="true">
 
-                    <!-- Main Vertical Stem of 'L' -->
-                    <rect x="25" y="15" width="8" height="70" fill="#D4AF37" />
+                        <!-- Main Vertical Stem of 'L' -->
+                        <rect x="25" y="15" width="8" height="70" fill="#D4AF37" />
 
-                    <!-- Graceful Leaf/Flowing Horizontal Curve of 'L' -->
-                    <path d="M 33 77 C 55 77 75 70 85 45 C 80 75 55 85 25 85 Z" fill="#D4AF37" />
+                        <!-- Graceful Leaf/Flowing Horizontal Curve of 'L' -->
+                        <path d="M 33 77 C 55 77 75 70 85 45 C 80 75 55 85 25 85 Z" fill="#D4AF37" />
 
-                    <!-- Subtle Rose Gold Flowing Accent Line (Hair/Wellness vibe) -->
-                    <path d="M 42 67 C 60 67 75 55 80 35 C 75 60 55 72 42 72 Z" fill="#B76E79" />
+                        <!-- Subtle Rose Gold Flowing Accent Line (Hair/Wellness vibe) -->
+                        <path d="M 42 67 C 60 67 75 55 80 35 C 75 60 55 72 42 72 Z" fill="#B76E79" />
 
-                    <!-- Geometric Premium Sparkle -->
-                    <path d="M 75 10 Q 75 20 85 20 Q 75 20 75 30 Q 75 20 65 20 Q 75 20 75 10 Z" fill="#D4AF37" />
+                        <!-- Geometric Premium Sparkle -->
+                        <path d="M 75 10 Q 75 20 85 20 Q 75 20 75 30 Q 75 20 65 20 Q 75 20 75 10 Z" fill="#D4AF37" />
 
-                </svg>
-                LUMIÈRE
-            </a>
-            <p class="cust-nav-parlour">{{ $tenant->name }}</p>
-        </div>
+                    </svg>
+                    LUMIÈRE
+                </a>
+                <p class="cust-nav-parlour">{{ $tenant->name }}</p>
+            </div>
+
+            @auth('customer')
+            {{-- Mobile hamburger toggle --}}
+            <button type="button" class="cust-nav-toggle" id="custNavToggle" aria-label="Toggle menu" aria-controls="custNavLinks" aria-expanded="false">
+                <i class="bi bi-list" aria-hidden="true"></i>
+            </button>
+            @else
+            <div class="nav-links-guest">
+                @if(!request()->routeIs('customer.login'))
+                <a href="{{ route('customer.login', $subdomain) }}" class="btn-lux-ghost btn-sm">Login</a>
+                @endif
+            </div>
+            @endauth
+        </nav>
 
         @auth('customer')
-        <div class="nav-links" role="navigation" aria-label="Customer dashboard navigation">
+        {{-- Nav links / mobile drawer. Kept OUTSIDE <nav> on purpose: <nav> is
+             position:sticky, which always creates its own stacking context,
+             so anything nested inside it gets trapped there and can never
+             render above a later sibling (like the backdrop) no matter what
+             z-index it's given. Living outside lets this compete on z-index
+             directly against .cust-nav-backdrop. --}}
+        <div class="nav-links" id="custNavLinks" role="navigation" aria-label="Customer dashboard navigation">
+
+            {{-- Drawer header (mobile only) --}}
+            <div class="cust-nav-drawer-head">
+                <span class="cust-nav-drawer-title">Menu</span>
+                <button type="button" class="cust-nav-close" id="custNavClose" aria-label="Close menu">
+                    <i class="bi bi-x-lg" aria-hidden="true"></i>
+                </button>
+            </div>
+
             <a href="{{ route('customer.home', $subdomain) }}" class="nav-link-btn {{ request()->routeIs('customer.home') ? 'active' : '' }}">
                 <i class="bi bi-scissors" aria-hidden="true"></i>
                 <span>Services</span>
@@ -70,17 +100,15 @@
                 @csrf
                 <button type="submit" class="nav-link-btn logout" aria-label="Logout">
                     <i class="bi bi-box-arrow-right" aria-hidden="true"></i>
+                    <span class="cust-nav-logout-label">Logout</span>
                 </button>
             </form>
         </div>
-        @else
-        <div class="nav-links">
-            @if(!request()->routeIs('customer.login'))
-            <a href="{{ route('customer.login', $subdomain) }}" class="btn-lux-ghost btn-sm">Login</a>
-            @endif
-        </div>
         @endauth
-    </nav>
+    </div>
+
+    {{-- Backdrop behind the mobile drawer --}}
+    <div class="cust-nav-backdrop" id="custNavBackdrop"></div>
 
     {{-- Main Content --}}
     <main class="cust-body" id="main-content" tabindex="-1">
@@ -95,6 +123,41 @@
 
 
     <script src="{{ asset('frontend/js/customer.js') }}"></script>
+    <script>
+        // Mobile navigation drawer
+        document.addEventListener('DOMContentLoaded', function() {
+            const navToggle = document.getElementById('custNavToggle');
+            const navLinks = document.getElementById('custNavLinks');
+            const navClose = document.getElementById('custNavClose');
+            const navBackdrop = document.getElementById('custNavBackdrop');
+
+            if (navToggle && navLinks && navBackdrop) {
+                function openNav() {
+                    navLinks.classList.add('open');
+                    navBackdrop.classList.add('show');
+                    navToggle.setAttribute('aria-expanded', 'true');
+                }
+                function closeNav() {
+                    navLinks.classList.remove('open');
+                    navBackdrop.classList.remove('show');
+                    navToggle.setAttribute('aria-expanded', 'false');
+                }
+
+                navToggle.addEventListener('click', function() {
+                    navLinks.classList.contains('open') ? closeNav() : openNav();
+                });
+                navBackdrop.addEventListener('click', closeNav);
+                if (navClose) navClose.addEventListener('click', closeNav);
+
+                // Auto-close after tapping a link/button inside the drawer
+                navLinks.querySelectorAll('a, button').forEach(function(el) {
+                    el.addEventListener('click', function() {
+                        if (window.innerWidth <= 768) closeNav();
+                    });
+                });
+            }
+        });
+    </script>
     <script>
         document.addEventListener('DOMContentLoaded', function() {
             document.querySelectorAll('form').forEach(function(form) {

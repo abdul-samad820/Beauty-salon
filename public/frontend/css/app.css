@@ -3,8 +3,26 @@
    ========================================================================== */
 @import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Jost:wght@200;300;400;500;600&display=swap");
 
+* {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(201, 169, 110, 0.35) transparent;
+}
+*::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+*::-webkit-scrollbar-track {
+    background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+    background: rgba(201, 169, 110, 0.35);
+    border-radius: 10px;
+}
+*::-webkit-scrollbar-thumb:hover {
+    background: var(--gold);
+}
+
 :root {
-    /* Color Palette */
     --bg: #09090b;
     --bg-2: #0d0d0f;
     --bg-card: #111116;
@@ -13,14 +31,12 @@
     --border: rgba(255, 255, 255, 0.06);
     --border-2: rgba(255, 255, 255, 0.11);
 
-    /* Branding Accent Lux Tokens */
     --gold: #c9a96e;
     --gold-dim: rgba(201, 169, 110, 0.14);
     --gold-glow: rgba(201, 169, 110, 0.32);
     --gold-glow-2: rgba(201, 169, 110, 0.12);
     --gold-grad: linear-gradient(135deg, #c9a96e 0%, #e8c98a 50%, #c9a96e 100%);
 
-    /* Semantic Feedback Design Properties */
     --teal: #2d7d6f;
     --teal-light: #3a9e8d;
     --teal-dim: rgba(45, 125, 111, 0.14);
@@ -33,10 +49,8 @@
     --purple: #8b5cf6;
     --purple-dim: rgba(139, 92, 246, 0.12);
 
-    /* Typography System Layer */
     --text: rgba(255, 255, 255, 0.9);
     --text-2: rgba(255, 255, 255, 0.65);
-    /* FIXED A4 / WCAG Compliance Contrast: Bumped opacity from 0.28 to 0.52 to ensure pass marks */
     --text-3: rgba(255, 255, 255, 0.52);
 
     --ff-display: "Cormorant Garamond", serif;
@@ -45,28 +59,25 @@
     --transition: 0.45s var(--ease);
     --transition-f: 0.25s ease;
 
-    /* Rigid 8-Stop Mathematical Type Scale (A1) */
-    --text-xs: 0.687rem; /* 11px */
-    --text-sm: 0.75rem; /* 12px */
-    --text-base: 1rem; /* 14px */
-    --text-md: 1rem; /* 16px */
-    --text-lg: 1.125rem; /* 18px */
-    --text-xl: 1.375rem; /* 22px */
-    --text-2xl: 1.75rem; /* 28px */
-    --text-3xl: 2.5rem; /* 40px */
+    --text-xs: 0.687rem;
+    --text-sm: 0.75rem;
+    --text-base: 1rem;
+    --text-md: 1rem;
+    --text-lg: 1.125rem;
+    --text-xl: 1.375rem;
+    --text-2xl: 1.75rem;
+    --text-3xl: 2.5rem;
     --text-hero: clamp(1.8rem, 5vw, 3rem);
 
-    /* Mathematical Layout Spacing Grid (A1) */
-    --space-1: 0.25rem; /* 4px */
-    --space-2: 0.5rem; /* 8px */
-    --space-3: 0.75rem; /* 12px */
-    --space-4: 1rem; /* 16px */
-    --space-5: 1.5rem; /* 24px */
-    --space-6: 2rem; /* 32px */
-    --space-7: 3rem; /* 48px */
-    --space-8: 4rem; /* 64px */
+    --space-1: 0.25rem;
+    --space-2: 0.5rem;
+    --space-3: 0.75rem;
+    --space-4: 1rem;
+    --space-5: 1.5rem;
+    --space-6: 2rem;
+    --space-7: 3rem;
+    --space-8: 4rem;
 
-    /* Rigid Border-Radius Architecture System */
     --r-xs: 4px;
     --r-sm: 6px;
     --r-md: 8px;
@@ -74,12 +85,10 @@
     --r-xl: 16px;
     --r-pill: 9999px;
 
-    /* Shared Dimensions Layout Constants */
-    --sidebar-w: 220px; /* FIXED A1 Component Sync: Synced sidebar width uniform globally */
+    --sidebar-w: 220px;
     --topbar-h: 90px;
 }
 
-/* Base Level Formats Reset */
 *,
 *::before,
 *::after {
@@ -112,7 +121,6 @@ body {
     -webkit-font-smoothing: antialiased;
 }
 
-/* FIXED A8 ACCESSIBILITY: WCAG 2.1 Focus Ring Implementation */
 :focus-visible {
     outline: 2px solid var(--gold);
     outline-offset: 3px;
@@ -120,10 +128,9 @@ body {
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {
-    outline: none; /* Handled gracefully via specialized layout box-shadow transitions */
+    outline: none;
 }
 
-/* Utility Elements Structural Layers */
 .serif {
     font-family: var(--ff-display);
 }
@@ -143,7 +150,6 @@ textarea:focus-visible {
     text-transform: uppercase;
 }
 
-/* Enterprise Layout Cards Matrix */
 .card-lux {
     background: var(--bg-card);
     border: 1px solid var(--border);
@@ -179,7 +185,6 @@ textarea:focus-visible {
     box-shadow: 0 8px 32px var(--gold-glow-2);
 }
 
-/* KPI Metrics Blocks Panels Layouts */
 .kpi-pad {
     padding: var(--space-5);
 }
@@ -223,7 +228,6 @@ textarea:focus-visible {
     color: var(--gold);
 }
 
-/* FIXED A1 Component Repair: Added Prop handling safely via separate absolute element layers */
 .kpi-icon-abs {
     position: absolute;
     top: var(--space-4);
@@ -239,7 +243,6 @@ textarea:focus-visible {
     font-size: var(--text-md);
 }
 
-/* Core Centralized Standardized Button Matrix (A1) */
 .btn-lux-gold {
     display: inline-flex;
     align-items: center;
@@ -334,13 +337,11 @@ textarea:focus-visible {
     background: var(--gold-dim);
 }
 
-/* Layout Structural Sizing Modifiers */
 .btn-sm {
     padding: 0.4rem 0.8rem !important;
     font-size: var(--text-xs) !important;
 }
 
-/* Specialized Table Engine Overrides */
 .lux-table-wrapper {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
@@ -373,7 +374,6 @@ textarea:focus-visible {
     color: var(--text);
 }
 
-/* Shimmer Skeleton Loading Pipeline Animation Layer (Phase 3) */
 .skeleton {
     position: relative;
     overflow: hidden;
@@ -399,7 +399,6 @@ textarea:focus-visible {
     }
 }
 
-/* Ambient Dynamic Orbs Tracking Framework Configuration Setup */
 .orb {
     position: fixed;
     border-radius: var(--r-pill);
@@ -430,7 +429,6 @@ textarea:focus-visible {
     right: 8%;
 }
 
-/* Global Unified Pagination Elements */
 .lux-pagination {
     display: flex;
     justify-content: center;
@@ -462,11 +460,6 @@ textarea:focus-visible {
     box-shadow: 0 4px 12px rgba(201, 169, 110, 0.2);
 }
 
-/* ==========================================================================
-   MISSING UTILITY CLASSES — Added to fix design breaks across all panels
-   ========================================================================== */
-
-/* Form Input — used across owner, superadmin, customer panels */
 .lux-input {
     display: block;
     width: 100%;
@@ -500,7 +493,6 @@ textarea:focus-visible {
     border-color: var(--rose);
 }
 
-/* Form Label */
 .lux-label {
     display: block;
     font-size: var(--text-xs);
@@ -511,7 +503,6 @@ textarea:focus-visible {
     margin-bottom: var(--space-2);
 }
 
-/* Fade-up entrance animation — used across all panels */
 .fade-up {
     animation: fadeUpIn 0.45s var(--ease) both;
 }
@@ -541,7 +532,6 @@ textarea:focus-visible {
     }
 }
 
-/* Live pulse dot indicator — used in dashboard */
 .live-dot {
     display: inline-block;
     width: 7px;
@@ -563,7 +553,6 @@ textarea:focus-visible {
     }
 }
 
-/* User chip — header profile badge */
 .user-chip {
     display: inline-flex;
     align-items: center;
@@ -576,7 +565,6 @@ textarea:focus-visible {
     padding: var(--space-1) var(--space-3);
 }
 
-/* Flash alerts */
 .flash-alert {
     padding: var(--space-3) var(--space-4);
     border-radius: var(--r-md);
@@ -602,6 +590,15 @@ textarea:focus-visible {
     border: 1px solid rgba(245, 158, 11, 0.25);
 }
 
+@media (max-width: 767.98px) {
+    .kpi-pad {
+        padding-right: 3.4rem;
+    }
+    .kpi-label {
+        line-height: 1.4;
+    }
+}
+
 @media (max-width: 480px) {
     .kpi-value {
         font-size: clamp(1.4rem, 6vw, 2rem);
@@ -609,5 +606,10 @@ textarea:focus-visible {
     .kpi-icon-abs {
         width: 30px;
         height: 30px;
+        top: var(--space-3);
+        right: var(--space-3);
+    }
+    .kpi-pad {
+        padding-right: 3rem;
     }
 }

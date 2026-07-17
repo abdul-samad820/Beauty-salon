@@ -96,7 +96,6 @@ class ReviewController extends Controller
         try {
             $ownerEmail = $tenant->email ?? null;
             if ($ownerEmail) {
-                // FIX: send() → queue() — customer ko wait nahi karna padega mail ke liye
                 \Mail::to($ownerEmail)->queue(new NewReviewMail(
                     $tenant,
                     Auth::guard('customer')->user(),

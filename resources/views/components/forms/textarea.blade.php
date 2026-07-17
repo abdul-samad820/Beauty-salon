@@ -7,28 +7,26 @@
 'required' => false,
 ])
 
-<div class="space-y-1.5 w-full">
+<div class="w-100">
     {{-- Label --}}
     @if($label)
-    <label for="{{ $name }}" class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400">
+    <label for="{{ $name }}" class="lux-label">
         {{ $label }}
     </label>
     @endif
 
-    {{-- Textarea Container --}}
-    <div class="relative rounded-lg shadow-sm">
-        <textarea name="{{ $name }}" id="{{ $name }}" rows="{{ $rows }}" class="block w-full rounded-lg border bg-white py-2.5 px-3 text-sm text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-1 min-h-[80px] transition-all duration-150 dark:bg-slate-950 dark:text-white
-            @error($name)
-                border-rose-500 focus:border-rose-500 focus:ring-rose-500 text-rose-900 dark:text-rose-400
-            @else
-                border-slate-200 focus:border-indigo-500 focus:ring-indigo-500 dark:border-slate-800
-            @enderror" placeholder="{{ $placeholder }}" @if($required) required aria-required="true" @endif {{ $attributes }}>{{ old($name, $value) }}</textarea>
-    </div>
+    {{-- Textarea --}}
+    <textarea name="{{ $name }}" id="{{ $name }}" rows="{{ $rows }}"
+        class="lux-input @error($name) border-rose @enderror"
+        style="resize: vertical; min-height: 80px;"
+        placeholder="{{ $placeholder }}"
+        @if($required) required aria-required="true" @endif
+        {{ $attributes }}>{{ old($name, $value) }}</textarea>
 
     {{-- Error Message --}}
     @error($name)
-    <p class="mt-1 text-xs font-medium text-rose-600 dark:text-rose-400 flex items-center gap-1">
-        <i class="bi bi-exclamation-circle-fill"></i>
+    <p style="margin-top:0.4rem; font-size:0.7rem; color:var(--rose); display:flex; align-items:center; gap:0.3rem;">
+        <i class="bi bi-exclamation-circle-fill" aria-hidden="true"></i>
         <span>{{ $message }}</span>
     </p>
     @enderror

@@ -7,9 +7,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
-/**
- * File: app/Http/Controllers/Web/Customer/ProfileController.php
- */
 class ProfileController extends Controller
 {
     /**

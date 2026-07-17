@@ -63,11 +63,7 @@
 
 @push('scripts')
 <script>
-    let currentRating = {
-        {
-            old('rating', 5)
-        }
-    };
+    let currentRating = {{ old('rating', 5) }};
 
     function setRating(val) {
         currentRating = val;

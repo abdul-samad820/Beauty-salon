@@ -38,19 +38,6 @@
             animation: pulseGlow 2s infinite;
         }
 
-        .lux-notif-scroller::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .lux-notif-scroller::-webkit-scrollbar-thumb {
-            background: rgba(201, 169, 110, 0.3);
-            border-radius: 10px;
-        }
-
-        .lux-notif-scroller::-webkit-scrollbar-thumb:hover {
-            background: var(--gold);
-        }
-
         .lux-notif-item:hover {
             background: rgba(255, 255, 255, 0.03) !important;
         }
@@ -154,8 +141,32 @@
     <script>
         const saToggle = document.getElementById('saToggle');
         const saSidebar = document.getElementById('saSidebar');
+
         if (saToggle && saSidebar) {
-            saToggle.addEventListener('click', () => saSidebar.classList.toggle('open'));
+            let saBackdrop = document.querySelector('.sa-sidebar-backdrop');
+            if (!saBackdrop) {
+                saBackdrop = document.createElement('div');
+                saBackdrop.className = 'sa-sidebar-backdrop';
+                document.body.appendChild(saBackdrop);
+            }
+
+            function toggleSaSidebar() {
+                saSidebar.classList.toggle('open');
+                saBackdrop.classList.toggle('show');
+            }
+
+            saToggle.addEventListener('click', toggleSaSidebar);
+            saBackdrop.addEventListener('click', toggleSaSidebar);
+
+            // Close the drawer automatically after navigating to a link on mobile
+            saSidebar.querySelectorAll('a').forEach(function (link) {
+                link.addEventListener('click', function () {
+                    if (window.innerWidth <= 992) {
+                        saSidebar.classList.remove('open');
+                        saBackdrop.classList.remove('show');
+                    }
+                });
+            });
         }
 
         let notifLoaded = false;

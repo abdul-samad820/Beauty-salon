@@ -11,6 +11,10 @@ body::before {
     z-index: 0;
 }
 
+.cust-nav-wrap {
+    position: relative;
+}
+
 .cust-nav {
     background: rgba(10, 10, 12, 0.88);
     backdrop-filter: blur(20px);
@@ -45,9 +49,17 @@ body::before {
 }
 
 .nav-links {
+    position: absolute;
+    top: 0;
+    right: var(--space-5);
+    height: 100%;
     display: flex;
     align-items: center;
     gap: var(--space-2);
+}
+.nav-links-guest {
+    display: flex;
+    align-items: center;
 }
 .nav-link-btn {
     display: flex;
@@ -107,6 +119,49 @@ body::before {
     color: var(--text-2);
 }
 
+.cust-nav-toggle {
+    display: none;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-2);
+    color: var(--text);
+    font-size: 1.2rem;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.cust-nav-drawer-head {
+    display: none;
+}
+.cust-nav-close {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid var(--border-2);
+    color: var(--text);
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.cust-nav-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.6);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 190;
+    display: none;
+}
+.cust-nav-backdrop.show {
+    display: block;
+}
+
 .cust-body {
     max-width: 1120px;
     margin: 0 auto;
@@ -159,47 +214,83 @@ body::before {
     padding-bottom: var(--space-2);
     margin-bottom: var(--space-4);
 }
-.category-tabs-container::-webkit-scrollbar {
-    height: 2px;
-}
-.category-tabs-container::-webkit-scrollbar-thumb {
-    background: var(--border-2);
-}
 
 @media (max-width: 768px) {
-    .nav-links .nav-link-btn span {
-        display: none;
-    }
     .cust-body {
         padding: var(--space-4) var(--space-3);
     }
 
-    /* Header polish for mobile */
     .cust-nav {
         padding: var(--space-3) var(--space-4);
     }
     .cust-nav-parlour {
         display: none;
     }
-    .nav-links {
-        gap: 0.35rem;
+
+    .cust-nav-toggle {
+        display: flex;
     }
+
+    .nav-links {
+        position: fixed;
+        top: 0;
+        right: 0;
+        height: 100vh;
+        width: min(80vw, 300px);
+        background: var(--bg-2, #18181b);
+        border-left: 1px solid var(--border);
+        box-shadow: -8px 0 30px rgba(0, 0, 0, 0.4);
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0.4rem;
+        padding: 1.2rem;
+        transform: translateX(100%);
+        transition: transform 0.3s ease;
+        z-index: 200;
+        overflow-y: auto;
+    }
+    .nav-links.open {
+        transform: translateX(0);
+    }
+
+    .cust-nav-drawer-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 0.8rem;
+        margin-bottom: 0.4rem;
+        border-bottom: 1px solid var(--border);
+    }
+    .cust-nav-drawer-title {
+        font-family: var(--ff-display);
+        font-size: var(--text-lg);
+        color: var(--text);
+    }
+
     .nav-link-btn {
-        padding: 0.5rem 0.6rem;
+        padding: 0.75rem 0.8rem;
+        justify-content: flex-start;
+    }
+    .nav-link-btn.logout {
+        border-top: 1px solid var(--border);
+        border-radius: 0;
+        padding-top: 1rem;
+        margin-top: 0.4rem;
+    }
+
+    .user-chip {
+        width: 100%;
+        padding: 0.6rem 0.8rem;
     }
     .user-chip-name {
-        display: none;
-    }
-    .user-chip {
-        padding: 0.35rem;
-        gap: 0;
+        display: inline;
+        flex: 1;
     }
     .user-chip i.bi-chevron-right {
-        display: none;
+        display: inline-block;
     }
 }
 
-/* Masonry Layout */
 .masonry-grid {
     column-count: 1;
     column-gap: 1.5rem;
@@ -288,7 +379,6 @@ body::before {
     transform: translateY(0);
 }
 
-/* Collapse/Expand Logic */
 .gallery-wrapper {
     position: relative;
     overflow: hidden;
@@ -322,7 +412,6 @@ body::before {
     opacity: 0;
 }
 
-/* Premium Lightbox */
 .lightbox-overlay {
     display: none;
     position: fixed;

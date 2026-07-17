@@ -162,7 +162,6 @@ class CustomerAuthController extends Controller
             array_merge($request->only('email'), ['tenant_id' => $tenant->id])
         );
 
-        // Same message dono cases mein — email existence reveal nahi hoti
         return back()->with('success', 'If an account exists with that email, a password reset link has been sent.');
 
     }

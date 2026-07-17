@@ -116,7 +116,7 @@ class AnalyticsWebController extends Controller
                         'revenue' => round($a->revenue_sum ?? 0),
                     ]);
 
-                // ✅ AFTER — single query with groupBy
+                // AFTER — single query with groupBy
                 $staffPerf = Staff::where('tenant_id', $tenant->id)
                     ->with('user')
                     ->withSum([

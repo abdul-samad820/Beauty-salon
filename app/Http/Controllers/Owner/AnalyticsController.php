@@ -21,7 +21,6 @@ class AnalyticsController extends Controller
         $tenantId = app('currentTenant')->id;
         $year = $request->year ?? Carbon::now()->year;
 
-        // FIX: 6 loop queries → 1 grouped query, PHP me distribute karo
         $sixMonthsAgo = Carbon::now()->subMonths(5)->startOfMonth();
         $monthlyRows = Appointment::where('tenant_id', $tenantId)
             ->where('status', 'completed')
@@ -42,7 +41,6 @@ class AnalyticsController extends Controller
             ];
         }
 
-        // FIX: 30 loop queries → 1 grouped query, PHP me distribute karo
         $monthStart = Carbon::now()->startOfMonth()->toDateString();
         $todayDate = Carbon::now()->toDateString();
         $dailyRows = Appointment::where('tenant_id', $tenantId)
@@ -96,7 +94,6 @@ class AnalyticsController extends Controller
     {
         $tenantId = app('currentTenant')->id;
 
-        // FIX: ->get()->groupBy() (saari rows memory me) → DB-level groupBy
         $topServices = Appointment::where('tenant_id', $tenantId)
             ->where('status', 'completed')
             ->join('services', 'appointments.service_id', '=', 'services.id')
@@ -113,7 +110,6 @@ class AnalyticsController extends Controller
             ])
             ->values();
 
-        // FIX: ->get()->groupBy() (saari rows memory me) → DB-level groupBy
         $popularSlots = Appointment::where('tenant_id', $tenantId)
             ->where('status', '!=', 'cancelled')
             ->selectRaw('SUBSTRING(start_time, 1, 5) as slot, COUNT(*) as bookings')

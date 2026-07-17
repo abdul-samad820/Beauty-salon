@@ -15,13 +15,12 @@
     @endif
 
     <div style="position: relative;">
-        <select name="{{ $name }}" id="{{ $name }}" class="lux-input @error($name) border-rose @enderror" {{-- FIX: Added color-scheme: dark for better native select styling --}} style="cursor: pointer; padding-right: 2.5rem; color-scheme: dark; background-color: var(--bg-input); color: var(--text);" @if($required) required aria-required="true" @endif {{ $attributes }}>
+        <select name="{{ $name }}" id="{{ $name }}" class="lux-input @error($name) border-rose @enderror"  style="cursor: pointer; padding-right: 2.5rem; color-scheme: dark; background-color: var(--bg-input); color: var(--text);" @if($required) required aria-required="true" @endif {{ $attributes }}>
             @if($blank !== null)
             <option value="" style="background: var(--bg-card); color: var(--text-3);">{{ $blank }}</option>
             @endif
 
             @foreach($options as $val => $text)
-            {{-- Explicitly specify background and color for option tags to ensure compatibility --}}
             <option value="{{ $val }}" {{ old($name, $selected) == $val ? 'selected' : '' }} style="background: var(--bg-card); color: var(--text);">
                 {{ $text }}
             </option>

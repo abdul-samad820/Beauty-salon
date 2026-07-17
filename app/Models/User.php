@@ -41,7 +41,6 @@ class User extends Authenticatable implements MustVerifyEmail
 
     public function isSuperAdmin(): bool
     {
-        // FIXED: Underscore hata diya taaki nayi settings aur db se match kare
         return $this->hasRole('superadmin');
     }
 

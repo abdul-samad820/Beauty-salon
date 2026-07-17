@@ -15,8 +15,6 @@ return new class extends Migration
 
             $table->dropUnique(['staff_id', 'appointment_date', 'start_time']);
 
-            // Bug 3 fix: end_time hata diya — same staff/date/start_time pe
-            // do appointments allow nahi karne chahiye, duration kuch bhi ho
             $table->unique(
                 ['staff_id', 'appointment_date', 'start_time'],
                 'uq_staff_date_time_slot'

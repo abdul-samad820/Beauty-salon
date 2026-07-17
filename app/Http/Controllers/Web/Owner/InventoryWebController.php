@@ -87,6 +87,7 @@ class InventoryWebController extends Controller
             'low_stock_threshold' => $request->low_stock_threshold ?? 5,
             'is_active' => true,
             'image' => $request->hasFile('image') ? $request->file('image')->store('products', 'cloudinary') : null,
+
         ]);
 
         if ($request->quantity > 0) {
@@ -214,6 +215,7 @@ class InventoryWebController extends Controller
                 Storage::disk('cloudinary')->delete($imagePath);
             }
             $imagePath = $request->file('image')->store('products', 'cloudinary');
+
         }
 
         $product->update([

@@ -36,23 +36,6 @@
             animation: pulseGlow 2s infinite;
         }
 
-        .lux-notif-scroller::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .lux-notif-scroller::-webkit-scrollbar-track {
-            background: transparent;
-        }
-
-        .lux-notif-scroller::-webkit-scrollbar-thumb {
-            background: rgba(201, 169, 110, 0.3);
-            border-radius: 10px;
-        }
-
-        .lux-notif-scroller::-webkit-scrollbar-thumb:hover {
-            background: var(--gold);
-        }
-
         .lux-notif-item:hover {
             background: rgba(255, 255, 255, 0.03) !important;
         }

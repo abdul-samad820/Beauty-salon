@@ -10,8 +10,6 @@ use Illuminate\Http\Request;
 /**
  * SuperAdmin Revenue Controller
  * Platform-wide revenue breakdown.
- *
- * File: app/Http/Controllers/SuperAdmin/RevenueController.php
  */
 class RevenueController extends Controller
 {

@@ -112,20 +112,22 @@
                 </div>
             </div>
 
-            <table class="lux-table mt-auto" style="margin-top: 1rem;">
-                <tbody>
-                    @forelse($topServices ?? [] as $svc)
-                    <tr>
-                        <td style="font-size: 0.75rem; padding: 0.3rem 0; border: none; color: var(--text-2);">{{ $svc['service_name'] ?? $svc['name'] }}</td>
-                        <td style="text-align: right; font-size: 0.75rem; color: var(--gold); font-weight: 500; padding: 0.3rem 0; border: none;">{{ $svc['total_bookings'] ?? $svc['total'] }} checks</td>
-                    </tr>
-                    @empty
-                    <tr>
-                        <td colspan="2" style="font-size: 0.75rem; padding: 0.3rem 0; border: none; color: var(--text-3); text-align: center;">No services booked yet.</td>
-                    </tr>
-                    @endforelse
-                </tbody>
-            </table>
+            <div class="lux-table-wrapper mt-auto" style="margin-top: 1rem;">
+                <table class="lux-table">
+                    <tbody>
+                        @forelse($topServices ?? [] as $svc)
+                        <tr>
+                            <td style="font-size: 0.75rem; padding: 0.3rem 0; border: none; color: var(--text-2);">{{ $svc['service_name'] ?? $svc['name'] }}</td>
+                            <td style="text-align: right; font-size: 0.75rem; color: var(--gold); font-weight: 500; padding: 0.3rem 0; border: none;">{{ $svc['total_bookings'] ?? $svc['total'] }} checks</td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="2" style="font-size: 0.75rem; padding: 0.3rem 0; border: none; color: var(--text-3); text-align: center;">No services booked yet.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

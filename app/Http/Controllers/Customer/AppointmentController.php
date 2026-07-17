@@ -47,7 +47,6 @@ class AppointmentController extends Controller
                 Rule::exists('staff', 'id')
                     ->where('tenant_id', $tenant->id),
             ],
-            // FIXED API-03: after_or_equal:today UTC tha — tenant-aware date use kiya
             'appointment_date' => ['required', 'date', 'after_or_equal:'.$tenantToday],
             'start_time' => 'required|date_format:H:i',
             'payment_method' => 'nullable|in:cash,razorpay',

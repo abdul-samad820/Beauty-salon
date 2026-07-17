@@ -9,16 +9,6 @@ use Illuminate\Http\Request;
 
 class InventoryValuationController extends Controller
 {
-    /**
-     * Inventory valuation report: current stock value at both cost and
-     * retail price, potential profit margin, and a stock movement summary
-     * (opening -> in/out -> closing) over the selected period.
-     *
-     * Note: cost_price is nullable (existing products predate this field),
-     * so cost-based totals only include products where cost_price is set.
-     * The report surfaces how many products are missing cost data so the
-     * owner knows the cost-value figure may be incomplete.
-     */
     public function index(Request $request)
     {
         $tenant = app('currentTenant');

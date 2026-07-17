@@ -43,7 +43,6 @@ class AuthWebController extends Controller
 
         $user = Auth::user();
 
-        // FIXED SEC-001: Enforce global platform activation checking bounds matrix safely
         if (! $user->is_active) {
             Auth::logout();
 

@@ -24,7 +24,6 @@ class StaffDashboardController extends Controller
             abort(403, 'Staff record not found.');
         }
 
-        // currentTenant bind karo
         if ($staff->tenant && ! app()->has('currentTenant')) {
             app()->instance('currentTenant', $staff->tenant);
         }
@@ -76,7 +75,7 @@ class StaffDashboardController extends Controller
 
     public function appointments()
     {
-        $staff = $this->getStaff(); // PEHLE
+        $staff = $this->getStaff();
         $tenant = $staff->tenant;
 
         $status = request('status', 'all');
@@ -94,7 +93,7 @@ class StaffDashboardController extends Controller
 
     public function commissions()
     {
-        $staff = $this->getStaff(); // PEHLE
+        $staff = $this->getStaff();
         $tenant = $staff->tenant;
 
         $commissions = Commission::with('appointment.service')
@@ -114,8 +113,8 @@ class StaffDashboardController extends Controller
 
     public function profile()
     {
-        $staff = $this->getStaff(); // PEHLE
-        $tenant = $staff->tenant;    // BAAD ME
+        $staff = $this->getStaff();
+        $tenant = $staff->tenant;
         $user = Auth::user();
 
         return view('staff.profile.index', compact('user', 'staff', 'tenant'));

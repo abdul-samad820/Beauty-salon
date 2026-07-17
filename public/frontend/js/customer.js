@@ -72,7 +72,6 @@ const Booking = {
     },
 
     // ── Staff Selection ────────────────────────────────────────────────────
-    // FIX: Sirf [data-id] wale staff chips ka selected hataao — payment chips touch mat karo
     selectStaff(btn, staffId, subdomain) {
         document.querySelectorAll('.staff-chip[data-id]').forEach(b => b.classList.remove('selected'));
         btn.classList.add('selected');

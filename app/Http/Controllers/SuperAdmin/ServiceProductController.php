@@ -44,7 +44,6 @@ class ServiceProductController extends Controller
     {
         $tenant = app('currentTenant');
 
-        // FIXED SEC-011: Strict validation configuration checking parameters appended to match local environment fields directly
         $request->validate([
             'service_id' => [
                 'required',
@@ -106,7 +105,6 @@ class ServiceProductController extends Controller
     {
         $tenant = app('currentTenant');
 
-        // FIXED: Explicit input schema parameters validation enforced before feeding row parser processing loops
         $request->validate([
             'service_id' => [
                 'required',

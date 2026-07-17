@@ -16,14 +16,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('inventory_transactions', function (Blueprint $table) {
-            // reference_id — appointment ID jis ke liye deduction hua
-            // Idempotency check ke liye use hoga
+            // reference_id — appointment ID  deduction
+            // Idempotency check use
             if (! Schema::hasColumn('inventory_transactions', 'reference_id')) {
                 $table->unsignedBigInteger('reference_id')->nullable()->after('reason');
             }
         });
 
-        // MySQL me ENUM me naya value add karna — raw statement se
         if (DB::getDriverName() === 'mysql') {
             DB::statement("
         ALTER TABLE inventory_transactions

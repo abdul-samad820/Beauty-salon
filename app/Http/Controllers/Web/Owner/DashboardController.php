@@ -21,27 +21,33 @@ class DashboardController extends Controller
         $month = Carbon::now();
 
         $stats = Cache::remember("dashboard_stats_{$tenant->id}", 60, function () use ($tenant, $today, $month) {
-            return [
-                'today_bookings' => Appointment::where('tenant_id', $tenant->id)
-                    ->whereDate('appointment_date', $today)
-                    ->whereNotIn('status', ['cancelled'])
-                    ->count(),
+            $nowTime = Carbon::now()->format('H:i');
 
-                'month_revenue' => Appointment::where('tenant_id', $tenant->id)
-                    ->where('status', 'completed')
-                    ->whereMonth('appointment_date', $month->month)
-                    ->whereYear('appointment_date', $month->year)
-                    ->sum('amount'),
+            $apptAgg = Appointment::where('tenant_id', $tenant->id)
+                ->selectRaw("
+                    SUM(CASE WHEN DATE(appointment_date) = ? AND status NOT IN ('cancelled') THEN 1 ELSE 0 END) as today_bookings,
+                    SUM(CASE WHEN status = 'completed' AND MONTH(appointment_date) = ? AND YEAR(appointment_date) = ? THEN amount ELSE 0 END) as month_revenue,
+                    SUM(CASE WHEN DATE(appointment_date) = ? AND start_time > ? AND status NOT IN ('cancelled', 'completed') THEN 1 ELSE 0 END) as upcoming_today
+                ", [$today->toDateString(), $month->month, $month->year, $today->toDateString(), $nowTime])
+                ->first();
+
+            $staffAgg = Staff::where('tenant_id', $tenant->id)
+                ->selectRaw('
+                    COUNT(*) as staff_total,
+                    SUM(CASE WHEN is_available = 1 THEN 1 ELSE 0 END) as staff_active
+                ')
+                ->first();
+
+            return [
+                'today_bookings' => (int) $apptAgg->today_bookings,
+                'month_revenue' => (float) $apptAgg->month_revenue,
 
                 'total_customers' => User::where('tenant_id', $tenant->id)
                     ->whereHas('roles', fn ($q) => $q->where('name', 'customer')->where('guard_name', 'customer'))
                     ->count(),
 
-                'staff_active' => Staff::where('tenant_id', $tenant->id)
-                    ->where('is_available', true)
-                    ->count(),
-
-                'staff_total' => Staff::where('tenant_id', $tenant->id)->count(),
+                'staff_active' => (int) $staffAgg->staff_active,
+                'staff_total' => (int) $staffAgg->staff_total,
 
                 'pending_commissions' => Commission::where('tenant_id', $tenant->id)
                     ->where('status', 'pending')
@@ -52,11 +58,7 @@ class DashboardController extends Controller
                     ->whereRaw('quantity <= low_stock_threshold')
                     ->count(),
 
-                'upcoming_today' => Appointment::where('tenant_id', $tenant->id)
-                    ->whereDate('appointment_date', $today)
-                    ->where('start_time', '>', Carbon::now()->format('H:i'))
-                    ->whereNotIn('status', ['cancelled', 'completed'])
-                    ->count(),
+                'upcoming_today' => (int) $apptAgg->upcoming_today,
 
                 'pending_reviews' => Review::where('tenant_id', $tenant->id)
                     ->where('status', 'pending')
@@ -142,41 +144,54 @@ class DashboardController extends Controller
             ->get();
 
         // ── SPARKLINES — last 3 months (cached 60s) ──
+        // Each metric used to run one query per month (9 queries total for 3 metrics
+        // + 3 more for reviews = 12 queries every cache miss). Grouping by month in a
+        // single query per metric brings that down to 4 queries total.
         $sparklines = Cache::remember("dashboard_sparklines_{$tenant->id}", 60, function () use ($tenant, $stats) {
+            $months = collect([2, 1, 0])->map(fn ($i) => now()->subMonths($i)->format('Y-m'));
+
+            $fillMonths = function ($rows) use ($months) {
+                return $months->map(fn ($key) => $rows[$key] ?? 0)->values();
+            };
+
+            $bookingsByMonth = Appointment::where('tenant_id', $tenant->id)
+                ->whereNotIn('status', ['cancelled'])
+                ->where('appointment_date', '>=', now()->subMonths(2)->startOfMonth())
+                ->selectRaw("DATE_FORMAT(appointment_date, '%Y-%m') as ym, COUNT(*) as total")
+                ->groupBy('ym')
+                ->pluck('total', 'ym');
+
+            $revenueByMonth = Appointment::where('tenant_id', $tenant->id)
+                ->where('status', 'completed')
+                ->where('appointment_date', '>=', now()->subMonths(2)->startOfMonth())
+                ->selectRaw("DATE_FORMAT(appointment_date, '%Y-%m') as ym, SUM(amount) as total")
+                ->groupBy('ym')
+                ->pluck('total', 'ym');
+
+            $customersByMonth = User::where('tenant_id', $tenant->id)
+                ->whereHas('roles', fn ($q) => $q->where('name', 'customer')->where('guard_name', 'customer'))
+                ->where('created_at', '>=', now()->subMonths(2)->startOfMonth())
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as total")
+                ->groupBy('ym')
+                ->pluck('total', 'ym');
+
+            $reviewsByMonth = Review::where('tenant_id', $tenant->id)
+                ->where('status', 'pending')
+                ->where('created_at', '>=', now()->subMonths(2)->startOfMonth())
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as total")
+                ->groupBy('ym')
+                ->pluck('total', 'ym');
+
             return [
-                'bookings' => collect([2, 1, 0])->map(fn ($i) => Appointment::where('tenant_id', $tenant->id)
-                    ->whereNotIn('status', ['cancelled'])
-                    ->whereMonth('appointment_date', now()->subMonths($i)->month)
-                    ->whereYear('appointment_date', now()->subMonths($i)->year)
-                    ->count()
-                )->values(),
-
-                'revenue' => collect([2, 1, 0])->map(fn ($i) => Appointment::where('tenant_id', $tenant->id)
-                    ->where('status', 'completed')
-                    ->whereMonth('appointment_date', now()->subMonths($i)->month)
-                    ->whereYear('appointment_date', now()->subMonths($i)->year)
-                    ->sum('amount')
-                )->values(),
-
-                'customers' => collect([2, 1, 0])->map(fn ($i) => User::where('tenant_id', $tenant->id)
-                    ->whereHas('roles', fn ($q) => $q->where('name', 'customer')->where('guard_name', 'customer'))
-                    ->whereMonth('created_at', now()->subMonths($i)->month)
-                    ->whereYear('created_at', now()->subMonths($i)->year)
-                    ->count()
-                )->values(),
-
+                'bookings' => $fillMonths($bookingsByMonth),
+                'revenue' => $fillMonths($revenueByMonth),
+                'customers' => $fillMonths($customersByMonth),
                 'lowstock' => collect([
                     $stats['low_stock_alerts'],
                     $stats['low_stock_alerts'],
                     $stats['low_stock_alerts'],
                 ])->values(),
-
-                'reviews' => collect([2, 1, 0])->map(fn ($i) => Review::where('tenant_id', $tenant->id)
-                    ->where('status', 'pending')
-                    ->whereMonth('created_at', now()->subMonths($i)->month)
-                    ->whereYear('created_at', now()->subMonths($i)->year)
-                    ->count()
-                )->values(),
+                'reviews' => $fillMonths($reviewsByMonth),
             ];
         });
 

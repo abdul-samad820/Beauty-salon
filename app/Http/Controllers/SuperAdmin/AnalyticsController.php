@@ -47,22 +47,29 @@ class AnalyticsController extends Controller
             : 0;
 
         // ── TENANT GROWTH (Last 12 months) ──────────────────────────────
+        $twelveMonthsAgo = now()->subMonths(11)->startOfMonth();
+        $tenantGrowthRaw = Tenant::where('created_at', '>=', $twelveMonthsAgo)
+            ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as count")
+            ->groupBy('ym')
+            ->pluck('count', 'ym');
+
         $tenantGrowth = [];
         for ($i = 11; $i >= 0; $i--) {
             $m = now()->subMonths($i);
-            $tenantGrowth[$m->format('M y')] = Tenant::whereYear('created_at', $m->year)
-                ->whereMonth('created_at', $m->month)
-                ->count();
+            $tenantGrowth[$m->format('M y')] = (int) ($tenantGrowthRaw[$m->format('Y-m')] ?? 0);
         }
 
         // ── REVENUE GROWTH (Last 12 months) ─────────────────────────────
+        $revenueGrowthRaw = Appointment::where('status', 'completed')
+            ->where('appointment_date', '>=', $twelveMonthsAgo)
+            ->selectRaw("DATE_FORMAT(appointment_date, '%Y-%m') as ym, SUM(amount) as total")
+            ->groupBy('ym')
+            ->pluck('total', 'ym');
+
         $revenueGrowth = [];
         for ($i = 11; $i >= 0; $i--) {
             $m = now()->subMonths($i);
-            $revenueGrowth[$m->format('M y')] = Appointment::where('status', 'completed')
-                ->whereYear('appointment_date', $m->year)
-                ->whereMonth('appointment_date', $m->month)
-                ->sum('amount');
+            $revenueGrowth[$m->format('M y')] = (float) ($revenueGrowthRaw[$m->format('Y-m')] ?? 0);
         }
 
         // ── TOP TENANTS by revenue ──────────────────────────────────────
@@ -100,11 +107,17 @@ class AnalyticsController extends Controller
             ->pluck('count', 'status');
 
         // ── DAILY BOOKINGS (Period ke hisaab se) ──────────────────────────────
-        $dailyBookings = [];
         $days = (int) $period;
+        $periodStart = now()->subDays($days - 1)->startOfDay();
+        $dailyBookingsRaw = Appointment::where('appointment_date', '>=', $periodStart)
+            ->selectRaw('DATE(appointment_date) as d, COUNT(*) as count')
+            ->groupBy('d')
+            ->pluck('count', 'd');
+
+        $dailyBookings = [];
         for ($i = $days - 1; $i >= 0; $i--) {
             $d = now()->subDays($i);
-            $dailyBookings[$d->format('d M')] = Appointment::whereDate('appointment_date', $d)->count();
+            $dailyBookings[$d->format('d M')] = (int) ($dailyBookingsRaw[$d->format('Y-m-d')] ?? 0);
         }
 
         return view('superadmin.analytics.index', compact(

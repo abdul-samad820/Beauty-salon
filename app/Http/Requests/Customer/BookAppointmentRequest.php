@@ -22,11 +22,9 @@ class BookAppointmentRequest extends FormRequest
      */
     public function rules(): array
     {
-        // FIXED SEC-010: Streamlined fallback resolution to retrieve absolute tenant model safely from verified instances
         $tenant = app('currentTenant') ?? app('customerTenant');
         $tenantId = $tenant?->id;
 
-        // FIXED SEC-021: Pull the tenant specific timezone dynamically to parse absolute today baseline threshold bounds safely
         $tenantTimezone = $tenant?->settings['timezone'] ?? config('app.timezone', 'UTC');
         $tenantTodayDate = Carbon::now($tenantTimezone)->toDateString();
 
@@ -41,7 +39,7 @@ class BookAppointmentRequest extends FormRequest
 
             'staff_id' => [
                 'nullable',
-                // FIXED: Matched column constraint rules using strict boolean availability structure mapping fields instead of raw status strings
+
                 Rule::exists('staff', 'id')->where(function ($query) use ($tenantId) {
                     $query->where('tenant_id', $tenantId)
                         ->where('is_available', true);
@@ -51,7 +49,6 @@ class BookAppointmentRequest extends FormRequest
             'appointment_date' => [
                 'required',
                 'date',
-                // FIXED SEC-021: Enforced strict validation timeline bounds using timezone-aware real dates instead of hardcoded strings
                 'after_or_equal:'.$tenantTodayDate,
             ],
 

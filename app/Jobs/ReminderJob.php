@@ -40,7 +40,6 @@ class ReminderJob implements ShouldQueue
         $service = $this->appointment->service;
         $staff = $this->appointment->staff?->user;
 
-        // Null safety check — agar koi bhi missing ho to job skip karo
         if (! $customer || ! $service) {
             Log::warning('Reminder skipped — missing customer or service', [
                 'appointment_id' => $this->appointment->id,
@@ -72,7 +71,7 @@ class ReminderJob implements ShouldQueue
             message: "Reminder: Your appointment is scheduled for today at {$this->appointment->start_time}. Service: {$service->name}. Staff: ".($staff?->name ?? 'our team').'.'
         );
 
-        // STEP 3 — Sirf tab mark karo jab email gaya ho
+        // STEP 3 —  only mark when email send
         if ($emailSent) {
             $this->appointment->update(['reminder_sent' => true]);
             Log::info('Reminder process completed', ['appointment_id' => $this->appointment->id]);

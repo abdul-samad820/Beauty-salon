@@ -42,7 +42,6 @@ class NotificationController extends Controller
             ->where('is_read', false)
             ->update(['is_read' => true]);
 
-        // 30 din purani read notifications delete karo
         AuditLog::where('tenant_id', $tenant->id)
             ->where('is_read', true)
             ->where('created_at', '<', now()->subDays(30))

@@ -16,7 +16,6 @@ class AppointmentController extends Controller
     {
         $tenant = app('currentTenant');
 
-        // FIXED SEC-021: Resolved system timezone using tenant settings layer to protect past/future offsets
         $tenantTimezone = $tenant->settings['timezone'] ?? config('app.timezone', 'UTC');
         $tenantToday = Carbon::now($tenantTimezone)->toDateString();
 
@@ -29,7 +28,7 @@ class AppointmentController extends Controller
         return response()->json([
             'message' => 'Today\'s appointments fetched successfully.',
             'date' => Carbon::parse($tenantToday)->format('d M Y'),
-            'total' => $appointments->total(), // FIXED: Replaced count() with total() to pull accurate pagination records
+            'total' => $appointments->total(),
             'data' => $appointments->items(),
             'pagination' => [
                 'current_page' => $appointments->currentPage(),
@@ -67,14 +66,23 @@ class AppointmentController extends Controller
             $query->where('staff_id', $request->staff_id);
         }
 
+        // Bound the result set: without this, a salon with years of history and
+        // no filters applied would load every appointment row in one request.
+        $perPage = min((int) $request->input('per_page', 50), 100);
+
         $appointments = $query->orderBy('appointment_date', 'asc')
             ->orderBy('start_time', 'asc')
-            ->get();
+            ->paginate($perPage);
 
         return response()->json([
             'message' => 'Appointments fetched successfully.',
-            'total' => $appointments->count(),
-            'data' => $appointments,
+            'total' => $appointments->total(),
+            'data' => $appointments->items(),
+            'pagination' => [
+                'current_page' => $appointments->currentPage(),
+                'last_page' => $appointments->lastPage(),
+                'per_page' => $appointments->perPage(),
+            ],
         ]);
     }
 
@@ -89,7 +97,6 @@ class AppointmentController extends Controller
             'status' => 'required|in:confirmed,checked_in,completed,cancelled,no_show',
         ]);
 
-        // FIXED SEC-012: Injected strict explicit tenant ownership lookup to eliminate cross-tenant data alteration risks
         $appointment = Appointment::with(['customer', 'staff.user', 'service'])
             ->where('tenant_id', $tenantId)
             ->find($id);

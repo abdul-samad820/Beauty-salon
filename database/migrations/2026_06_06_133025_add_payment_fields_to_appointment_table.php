@@ -9,15 +9,12 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // Step 1 — payment_method ENUM me razorpay add karo
-        // SQLite MODIFY COLUMN support nahi karta, isliye driver check karo
+        // Step 1 — payment_method ENUM
         if (DB::getDriverName() !== 'sqlite') {
             DB::statement("ALTER TABLE appointments MODIFY COLUMN payment_method ENUM('cash', 'upi', 'razorpay') NOT NULL DEFAULT 'cash'");
         }
-        // SQLite mein ENUM TEXT ke roop mein store hota hai,
-        // column already exist karta hai — kuch karna nahi padta
 
-        // Step 2 — Razorpay fields + payment_status add karo
+        // Step 2 — Razorpay fields + payment_status add
         Schema::table('appointments', function (Blueprint $table) {
             $table->enum('payment_status', ['pending', 'paid', 'failed', 'not_required'])
                 ->default('not_required')

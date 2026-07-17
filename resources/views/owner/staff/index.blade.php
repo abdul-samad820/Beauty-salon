@@ -97,12 +97,12 @@
                         </summary>
                         <form method="POST" action="{{ route('owner.staff.tiers.store', $s->id) }}" style="margin-top: 0.5rem; display: flex; flex-direction: column; gap: 0.4rem;">
                             @csrf
-                            <div style="display: flex; gap: 0.4rem;">
-                                <input type="number" name="min_revenue" placeholder="Min ₹" min="0" step="1000" style="flex: 1; font-size: 0.72rem; padding: 0.3rem 0.5rem; border-radius: 4px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text);" required />
-                                <input type="number" name="max_revenue" placeholder="Max ₹ (blank=∞)" min="0" step="1000" style="flex: 1; font-size: 0.72rem; padding: 0.3rem 0.5rem; border-radius: 4px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text);" />
+                            <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
+                                <input type="number" name="min_revenue" class="tier-input" placeholder="Min ₹" min="0" step="1000" style="flex: 1 1 100px; min-width: 100px; font-size: 0.72rem; padding: 0.3rem 0.5rem; border-radius: 4px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text);" required />
+                                <input type="number" name="max_revenue" class="tier-input" placeholder="Max ₹ (∞)" min="0" step="1000" style="flex: 1 1 100px; min-width: 100px; font-size: 0.72rem; padding: 0.3rem 0.5rem; border-radius: 4px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text);" />
                             </div>
                             <div style="display: flex; gap: 0.4rem; align-items: center;">
-                                <input type="number" name="commission_percent" placeholder="Rate %" min="0" max="50" step="0.5" style="flex: 1; font-size: 0.72rem; padding: 0.3rem 0.5rem; border-radius: 4px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text);" required />
+                                <input type="number" name="commission_percent" class="tier-input" placeholder="Rate %" min="0" max="50" step="0.5" style="flex: 1; font-size: 0.72rem; padding: 0.3rem 0.5rem; border-radius: 4px; background: var(--bg-input); border: 1px solid var(--border); color: var(--text);" required />
                                 <button type="submit" style="padding: 0.3rem 0.7rem; border-radius: 4px; background: var(--gold); color: #1a1400; font-size: 0.72rem; font-weight: 600; border: none; cursor: pointer;">Add</button>
                             </div>
                         </form>
@@ -181,6 +181,23 @@
 </x-cards.modal>
 
 @endsection
+
+@push('styles')
+<style>
+    /* FIXED: native number-input spinner arrows were eating into the
+       already-tight width of the Min/Max revenue-tier inputs on mobile,
+       clipping the placeholder text. Remove them for a clean compact look. */
+    .tier-input::-webkit-outer-spin-button,
+    .tier-input::-webkit-inner-spin-button {
+        -webkit-appearance: none;
+        margin: 0;
+    }
+    .tier-input[type="number"] {
+        -moz-appearance: textfield;
+        appearance: textfield;
+    }
+</style>
+@endpush
 
 @push('scripts')
 <script>

@@ -5,7 +5,7 @@
 @section('breadcrumb', 'Manage / Customers / ' . $customer->name)
 
 @section('topbar-actions')
-<a href="{{ route('owner.customers.index') }}" class="btn-sm" style="padding: 0.5rem 1rem; border-radius: var(--r-md); background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-2); text-decoration: none;">
+<a href="{{ route('owner.customers.index') }}" class="btn-lux-ghost btn-sm" style="padding: 0.5rem 1rem; border-radius: var(--r-md); background: rgba(255,255,255,0.03); border: 1px solid var(--border); color: var(--text-2); text-decoration: none;">
     <i class="bi bi-arrow-left me-1"></i> Back to List
 </a>
 @endsection

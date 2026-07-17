@@ -26,7 +26,7 @@ class TenantController extends Controller
      */
     public function index(Request $request)
     {
-        $query = Tenant::withCount(['users', 'services', 'staff', 'appointments']);
+        $query = Tenant::withCount(['users', 'services', 'staff', 'appointments'])->with('owner');
 
         if ($request->filled('search')) {
             $query->where(function ($q) use ($request) {
@@ -119,7 +119,6 @@ class TenantController extends Controller
                 'plan' => $tenant->plan,
             ]);
 
-            // AuditLog::record ke baad, return $tenant se pehle add karo
             $plan = Plan::where('slug', $request->plan)->first();
             if ($plan) {
                 $startsAt = now();
@@ -151,14 +150,12 @@ class TenantController extends Controller
      */
     public function show(Tenant $tenant)
     {
-        // FIXED SEC-020: Enforced selective column hydration arrays to safeguard sensitive fields and block memory leaks
         $tenant->load([
             'users:id,tenant_id,name,email,phone,is_active,created_at',
             'services:id,tenant_id,name,category,duration_minutes,price,is_active',
             'staff:id,tenant_id,user_id,commission_percent,is_available',
         ]);
 
-        // FIXED SEC-020: Paginated downstream context mappings instead of memory loading thousands of raw rows
         $appointments = $tenant->appointments()
             ->with(['service:id,name', 'customer:id,name'])
             ->latest()
@@ -217,7 +214,6 @@ class TenantController extends Controller
             'status' => $request->status ?? $tenant->status,
         ]);
 
-        // Plan change hone par subscription bhi sync karo
         if ($tenant->wasChanged('plan')) {
             $plan = Plan::where('slug', $request->plan)->first();
             if ($plan) {
@@ -293,60 +289,78 @@ class TenantController extends Controller
      */
     public function dashboard()
     {
-        // FIXED SEC-015: Streamlined database engine interactions utilizing transactional counters directly
         $stats = Cache::remember('superadmin_dashboard_stats', 60, function () {
+            $now = now();
+
+            $tenantAgg = Tenant::selectRaw("
+                    COUNT(*) as total,
+                    SUM(CASE WHEN status = 'active' THEN 1 ELSE 0 END) as active,
+                    SUM(CASE WHEN status = 'suspended' THEN 1 ELSE 0 END) as suspended,
+                    SUM(CASE WHEN trial_ends_at IS NOT NULL AND trial_ends_at <= ? AND trial_ends_at > ? THEN 1 ELSE 0 END) as trial_ending,
+                    SUM(CASE WHEN trial_ends_at IS NOT NULL AND trial_ends_at > ? THEN 1 ELSE 0 END) as trial_tenants,
+                    SUM(CASE WHEN MONTH(created_at) = ? AND YEAR(created_at) = ? THEN 1 ELSE 0 END) as new_this_month,
+                    SUM(CASE WHEN plan = 'free' THEN 1 ELSE 0 END) as free_plan,
+                    SUM(CASE WHEN plan = 'basic' THEN 1 ELSE 0 END) as basic_plan,
+                    SUM(CASE WHEN plan = 'premium' THEN 1 ELSE 0 END) as premium_plan
+                ", [
+                $now->copy()->addDays(3), $now,
+                $now,
+                $now->month, $now->year,
+            ])->first();
+
+            $apptAgg = Appointment::selectRaw("
+                    COUNT(*) as total_bookings,
+                    SUM(CASE WHEN DATE(appointment_date) = ? THEN 1 ELSE 0 END) as bookings_today,
+                    SUM(CASE WHEN status = 'completed' THEN amount ELSE 0 END) as total_revenue,
+                    SUM(CASE WHEN status = 'completed' AND MONTH(appointment_date) = ? AND YEAR(appointment_date) = ? THEN amount ELSE 0 END) as platform_revenue_month
+                ", [$now->toDateString(), $now->month, $now->year])->first();
+
             return [
-                'total_tenants' => Tenant::count(),
-                'active_tenants' => Tenant::where('status', 'active')->count(),
-                'suspended' => Tenant::where('status', 'suspended')->count(),
-                'trial_ending' => Tenant::whereNotNull('trial_ends_at')
-                    ->where('trial_ends_at', '<=', now()->addDays(3))
-                    ->where('trial_ends_at', '>', now())
-                    ->count(),
-                'trial_tenants' => Tenant::whereNotNull('trial_ends_at')
-                    ->where('trial_ends_at', '>', now())
-                    ->count(),
+                'total_tenants' => (int) $tenantAgg->total,
+                'active_tenants' => (int) $tenantAgg->active,
+                'suspended' => (int) $tenantAgg->suspended,
+                'trial_ending' => (int) $tenantAgg->trial_ending,
+                'trial_tenants' => (int) $tenantAgg->trial_tenants,
                 'total_users' => User::whereNotNull('tenant_id')->count(),
-                'new_this_month' => Tenant::whereMonth('created_at', now()->month)
-                    ->whereYear('created_at', now()->year)
-                    ->count(),
-                'total_bookings_today' => Appointment::whereDate('appointment_date', today())->count(),
-                'total_bookings' => Appointment::count(),
-                'total_revenue' => Appointment::where('status', 'completed')->sum('amount'),
-                'platform_revenue_month' => Appointment::where('status', 'completed')
-                    ->whereMonth('appointment_date', now()->month)
-                    ->whereYear('appointment_date', now()->year)
-                    ->sum('amount'),
-                'free_tenants' => Tenant::where('plan', 'free')->count(),
-                'basic_tenants' => Tenant::where('plan', 'basic')->count(),
-                'premium_tenants' => Tenant::where('plan', 'premium')->count(),
+                'new_this_month' => (int) $tenantAgg->new_this_month,
+                'total_bookings_today' => (int) $apptAgg->bookings_today,
+                'total_bookings' => (int) $apptAgg->total_bookings,
+                'total_revenue' => (float) $apptAgg->total_revenue,
+                'platform_revenue_month' => (float) $apptAgg->platform_revenue_month,
+                'free_tenants' => (int) $tenantAgg->free_plan,
+                'basic_tenants' => (int) $tenantAgg->basic_plan,
+                'premium_tenants' => (int) $tenantAgg->premium_plan,
             ];
         });
         // Sparkline data — last 3 months
-        // to:
         $sparklines = Cache::remember('superadmin_dashboard_sparklines', 60, function () {
+            $rangeStart = now()->subMonths(2)->startOfMonth();
+
+            $tenantMonthly = Tenant::where('created_at', '>=', $rangeStart)
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as cnt")
+                ->groupBy('ym')->pluck('cnt', 'ym');
+
+            $bookingMonthly = Appointment::where('created_at', '>=', $rangeStart)
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as cnt")
+                ->groupBy('ym')->pluck('cnt', 'ym');
+
+            $activeMonthly = Tenant::where('status', 'active')
+                ->where('created_at', '>=', $rangeStart)
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as cnt")
+                ->groupBy('ym')->pluck('cnt', 'ym');
+
+            $trialMonthly = Tenant::whereNotNull('trial_ends_at')
+                ->where('created_at', '>=', $rangeStart)
+                ->selectRaw("DATE_FORMAT(created_at, '%Y-%m') as ym, COUNT(*) as cnt")
+                ->groupBy('ym')->pluck('cnt', 'ym');
+
+            $months = collect([2, 1, 0])->map(fn ($i) => now()->subMonths($i)->format('Y-m'));
+
             return [
-                'tenants' => collect([2, 1, 0])->map(fn ($i) => Tenant::whereMonth('created_at', now()->subMonths($i)->month)
-                    ->whereYear('created_at', now()->subMonths($i)->year)
-                    ->count()
-                )->values(),
-
-                'bookings' => collect([2, 1, 0])->map(fn ($i) => Appointment::whereMonth('created_at', now()->subMonths($i)->month)
-                    ->whereYear('created_at', now()->subMonths($i)->year)
-                    ->count()
-                )->values(),
-
-                'active' => collect([2, 1, 0])->map(fn ($i) => Tenant::where('status', 'active')
-                    ->whereMonth('created_at', now()->subMonths($i)->month)
-                    ->whereYear('created_at', now()->subMonths($i)->year)
-                    ->count()
-                )->values(),
-
-                'trials' => collect([2, 1, 0])->map(fn ($i) => Tenant::whereNotNull('trial_ends_at')
-                    ->whereMonth('created_at', now()->subMonths($i)->month)
-                    ->whereYear('created_at', now()->subMonths($i)->year)
-                    ->count()
-                )->values(),
+                'tenants' => $months->map(fn ($ym) => (int) ($tenantMonthly[$ym] ?? 0))->values(),
+                'bookings' => $months->map(fn ($ym) => (int) ($bookingMonthly[$ym] ?? 0))->values(),
+                'active' => $months->map(fn ($ym) => (int) ($activeMonthly[$ym] ?? 0))->values(),
+                'trials' => $months->map(fn ($ym) => (int) ($trialMonthly[$ym] ?? 0))->values(),
             ];
         });
         $planDistribution = Tenant::selectRaw('plan, COUNT(*) as count')
@@ -354,6 +368,7 @@ class TenantController extends Controller
             ->pluck('count', 'plan');
 
         $recentTenants = Tenant::withCount('appointments')
+            ->with('owner')
             ->latest()
             ->take(8)
             ->get();
@@ -381,8 +396,7 @@ class TenantController extends Controller
                 'color' => 'var(--emerald)',
             ]);
 
-        // Naye subscriptions
-        $newSubscriptions = Subscription::with('tenant')
+        $newSubscriptions = Subscription::with(['tenant', 'plan'])
             ->latest()
             ->take(3)
             ->get()
@@ -453,7 +467,7 @@ class TenantController extends Controller
     public function notifications()
     {
         $notifications = AuditLog::select('id', 'action', 'payload', 'created_at', 'is_read')
-            ->whereNull('tenant_id')   // sirf superadmin ke logs
+            ->whereNull('tenant_id')
             ->latest()
             ->take(20)
             ->get()

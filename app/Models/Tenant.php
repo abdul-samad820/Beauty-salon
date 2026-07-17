@@ -121,7 +121,6 @@ class Tenant extends Model
 
     public function setPlanAttribute($value): void
     {
-        // Skip validation in testing environment to avoid seeder dependency
         if (! app()->environment('testing')) {
             $validPlans = Cache::remember('plan_slugs', 3600, fn () => Plan::pluck('slug')->toArray());
 

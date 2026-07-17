@@ -37,7 +37,6 @@ use App\Http\Controllers\Web\Owner\StaffWebController;
 use App\Http\Controllers\Web\Staff\StaffDashboardController;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
@@ -139,7 +138,7 @@ Route::middleware(['auth', 'tenant.web', 'role:staff'])
     });
 /*
 |--------------------------------------------------------------------------
-| Super Admin Protected Core Console (SEC-015 Fixed Alias Mappings)
+| Super Admin Protected Core Console
 |--------------------------------------------------------------------------
 */
 Route::middleware(['auth', 'superadmin'])
@@ -323,12 +322,3 @@ Route::prefix('{subdomain}')
                 ->name('customer.invoice.download');
         });
     });
-
-Route::get('/cron/run-schedule/{token}', function ($token) {
-    if ($token !== env('CRON_SECRET')) {
-        abort(403, 'Unauthorized');
-    }
-    Artisan::call('schedule:run');
-
-    return response('Scheduler executed at '.now(), 200);
-});

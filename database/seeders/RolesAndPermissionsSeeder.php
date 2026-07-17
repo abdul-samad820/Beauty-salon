@@ -66,7 +66,6 @@ class RolesAndPermissionsSeeder extends Seeder
             'guard_name' => 'web',
         ]);
 
-        // FIXED SEC-004: Shifted customer role to 'customer' guard name to block cross-guard session hijack bugs
         $customer = Role::firstOrCreate([
             'name' => 'customer',
             'guard_name' => 'customer',

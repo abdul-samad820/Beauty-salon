@@ -61,7 +61,6 @@ class CommissionController extends Controller
 
         $staff = Staff::with('user')->where('tenant_id', $tenantId)->get();
 
-        // FIXED N+1 Query: Fetch all matching month records in single grouped memory buffer array map execution
         $monthlyCommissions = Commission::where('tenant_id', $tenantId)
             ->whereMonth('created_at', $month)
             ->whereYear('created_at', $year)
@@ -102,7 +101,6 @@ class CommissionController extends Controller
         $month = $request->month ?? Carbon::now()->month;
         $year = $request->year ?? Carbon::now()->year;
 
-        // FIXED SEC-013: Immediate input validation checkpoint preventing enumeration and path scanning probes
         $staff = Staff::with('user')
             ->where('tenant_id', $tenantId)
             ->find($staffId);

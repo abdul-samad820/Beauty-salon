@@ -3,7 +3,6 @@
    ========================================================================== */
 
 const OwnerAnalytics = {
-    // FIXED A2: Upgraded sparkline function to load real database runtime arrays context dynamically
     initSparkline(ctxId, dataPointsArray, accentColorName) {
         const canvas = document.getElementById(ctxId);
         if (!canvas) return;
@@ -93,6 +92,16 @@ document.addEventListener('DOMContentLoaded', function () {
 
         sidebarToggle.addEventListener('click', toggleSidebar);
         backdrop.addEventListener('click', toggleSidebar);
+
+        // Close the drawer automatically after navigating to a link on mobile
+        lmSidebar.querySelectorAll('a').forEach(function (link) {
+            link.addEventListener('click', function () {
+                if (window.innerWidth <= 992) {
+                    lmSidebar.classList.remove('open');
+                    backdrop.classList.remove('show');
+                }
+            });
+        });
     }
 });
 

@@ -106,11 +106,15 @@ $lowStock = \App\Models\Product::where('tenant_id', $tenantId)
                 </div>
                 <i class="bi bi-three-dots-vertical faint"></i>
             </button>
-            <div id="ownerDropdown" style="display: none; margin: 0.5rem; background: var(--bg-card); border-radius: 8px;">
-                <a href="{{ route('owner.profile') }}" style="display: block; padding: 0.6rem 1rem; color: var(--text-2); font-size: 0.78rem; text-decoration: none;">Profile</a>
-                <form method="POST" action="{{ route('logout') }}">
+            <div id="ownerDropdown" style="display: none; margin: 0.5rem; background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px; overflow: hidden;">
+                <a href="{{ route('owner.profile') }}" style="display: block; padding: 0.65rem 1rem; color: var(--text-2); font-size: 0.78rem; text-decoration: none;" onmouseover="this.style.background='rgba(255,255,255,0.03)'" onmouseout="this.style.background='transparent'">
+                    <i class="bi bi-person" style="width:16px; display:inline-block; margin-right:0.4rem;"></i>Profile
+                </a>
+                <form method="POST" action="{{ route('logout') }}" style="border-top: 1px solid var(--border);">
                     @csrf
-                    <button type="submit" style="width:100%; border:none; background:none; padding: 0.6rem 1rem; color: var(--rose); font-size: 0.78rem; text-align:left;">Logout</button>
+                    <button type="submit" style="width:100%; border:none; background:none; padding: 0.65rem 1rem; color: var(--rose); font-size: 0.78rem; text-align:left; cursor:pointer;" onmouseover="this.style.background='rgba(244,63,94,0.06)'" onmouseout="this.style.background='transparent'">
+                        <i class="bi bi-box-arrow-left" style="width:16px; display:inline-block; margin-right:0.4rem;"></i>Logout
+                    </button>
                 </form>
             </div>
         </div>

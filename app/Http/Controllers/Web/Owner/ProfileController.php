@@ -7,9 +7,6 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 
-/**
- * File: app/Http/Controllers/Web/Owner/ProfileController.php
- */
 class ProfileController extends Controller
 {
     /**
@@ -40,7 +37,6 @@ class ProfileController extends Controller
         $data = $request->only('name', 'phone', 'email');
 
         if ($request->hasFile('profile_photo')) {
-            // Purani photo delete karo
             if ($user->profile_photo) {
                 \Storage::disk('cloudinary')->delete($user->profile_photo);
             }

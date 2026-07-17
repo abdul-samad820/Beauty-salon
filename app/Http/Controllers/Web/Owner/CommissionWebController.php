@@ -26,7 +26,6 @@ class CommissionWebController extends Controller
 
         $staffList = Staff::with('user')->where('tenant_id', $tenant->id)->get();
 
-        // FIXED N+1 Query: Injected single mass-fetch grouped collection step instead of triggering heavy loop db reads
         $allTenantComms = Commission::where('tenant_id', $tenant->id)
             ->whereMonth('created_at', $month)
             ->whereYear('created_at', $year)
@@ -88,7 +87,6 @@ class CommissionWebController extends Controller
         $month = $request->get('month', now()->month);
         $year = $request->get('year', now()->year);
 
-        // FIXED SEC-013: Exploded unauthenticated-adjacent resource probe loops with absolute authorization context lookup checks
         $staff = Staff::with('user')
             ->where('tenant_id', $tenant->id)
             ->find($staffId);

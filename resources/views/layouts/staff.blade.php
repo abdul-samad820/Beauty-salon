@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="csrf-token" content="{{ csrf_token() }}" />
     <title>@yield('title', 'Staff Portal') · LUMIÈRE</title>
       <link rel="icon" type="image/png" href="{{ asset('lumiere-favicon.png') }}">
@@ -33,6 +33,7 @@
             display: flex;
             width: 100vw;
             height: 100vh;
+            height: 100dvh; /* FIXED: real visible height on mobile, ignores address-bar chrome */
             overflow: hidden;
             background: var(--bg-body, #09090b) !important;
             /* FIX: Force Dark Background */
@@ -43,6 +44,7 @@
             width: var(--sidebar-w) !important;
             min-width: var(--sidebar-w) !important;
             height: 100vh !important;
+            height: 100dvh !important; /* FIXED: same reasoning — keeps footer/logout on-screen on mobile */
             background: var(--bg-2, #18181b) !important;
             border-right: 1px solid var(--border, rgba(255, 255, 255, 0.05)) !important;
             display: flex !important;
@@ -58,25 +60,13 @@
             padding: 1rem 0;
         }
 
-        .sidebar-nav::-webkit-scrollbar {
-            width: 4px;
-        }
-
-        .sidebar-nav::-webkit-scrollbar-thumb {
-            background: rgba(201, 169, 110, 0.3);
-            border-radius: 10px;
-        }
-
-        .sidebar-nav::-webkit-scrollbar-thumb:hover {
-            background: var(--gold, #C9A84C);
-        }
-
         /* Force Content Area Settings */
         .main-wrap {
             flex: 1 !important;
             width: calc(100vw - var(--sidebar-w)) !important;
             max-width: calc(100vw - var(--sidebar-w)) !important;
             height: 100vh !important;
+            height: 100dvh !important;
             overflow-y: auto !important;
             overflow-x: hidden !important;
             margin-left: 0 !important;
@@ -145,6 +135,7 @@
                 z-index: 1000;
                 transform: translateX(-100%) !important;
                 transition: transform 0.3s ease;
+                overflow-y: auto !important; /* safety net: never lets the footer/logout get permanently clipped */
             }
             .sidebar.open {
                 transform: translateX(0) !important;
@@ -156,6 +147,7 @@
             }
             .page-body {
                 padding: 1.2rem !important;
+                padding-bottom: calc(2.5rem + env(safe-area-inset-bottom, 0px)) !important;
             }
             .staff-mobile-topbar {
                 display: flex !important;
