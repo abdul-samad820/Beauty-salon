@@ -1,5 +1,5 @@
-  <section id="hero">
-      <div class="hero-bg parallax-img" data-parallax="0.3"></div>
+<section id="hero">
+      <div class="hero-bg parallax-img" data-parallax="0.3" style="background-image: url('{{ $tenant->hero_image ? cloudinary()->image($tenant->hero_image)->toUrl() : 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1800&q=85&auto=format&fit=crop' }}');"></div>
       <div class="hero-overlay"></div>
       <div class="float-orb orb-teal"></div>
       <div class="float-orb orb-gold"></div>

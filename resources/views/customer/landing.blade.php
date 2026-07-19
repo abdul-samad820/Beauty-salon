@@ -178,7 +178,7 @@
                 <div class="col-sm-6 col-lg-3 reveal">
                     <div class="product-card">
                         <div class="product-img-wrap">
-                           <img src="{{ $product->image ? Storage::disk('cloudinary')->url($product->image) : 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500&q=80' }}" alt="{{ $product->name }}" />
+                        <img src="{{ $product->image ? cloudinary()->image($product->image)->toUrl() : 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500&q=80' }}" alt="{{ $product->name }}" />
                         </div>
                         <div class="product-body">
                             <div class="product-sub">{{ $product->category ?? '' }}</div>

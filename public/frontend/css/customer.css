@@ -56,6 +56,7 @@ body::before {
     display: flex;
     align-items: center;
     gap: var(--space-2);
+    z-index: 101;
 }
 .nav-links-guest {
     display: flex;
@@ -485,3 +486,4 @@ body::before {
     color: black;
     transform: rotate(90deg);
 }
+

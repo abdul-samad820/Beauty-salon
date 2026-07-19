@@ -28,9 +28,15 @@ class CustomerTenantMiddleware
         }
 
         // Retrieve the tenant based on the subdomain
-        $tenant = Tenant::where('subdomain', $subdomain)
-            ->where('status', 'active')
-            ->first();
+        // 30 second ke liye cache karte hain — customer-facing pages pe har
+        // request ka DB round-trip bachane ke liye
+        $tenant = \Illuminate\Support\Facades\Cache::remember(
+            'tenant:subdomain:'.$subdomain,
+            30,
+            fn () => Tenant::where('subdomain', $subdomain)
+                ->where('status', 'active')
+                ->first()
+        );
 
         if (! $tenant) {
             abort(404, 'Parlour not found or inactive.');

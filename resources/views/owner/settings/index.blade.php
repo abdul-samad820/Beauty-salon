@@ -57,6 +57,41 @@
         </div>
     </div>
 
+    <!-- Landing Page Hero Image Panel -->
+    <div class="col-12 col-xl-6 fade-up s1">
+        <div class="card-lux p-4 h-100">
+            <div style="border-bottom: 1px solid var(--border); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+                <h3 class="serif" style="font-size: 1.2rem; color: var(--gold); margin-bottom: 0;">Landing Page Hero Image</h3>
+                <p style="font-size: 0.75rem; color: var(--text-3); margin-top: 0.2rem; margin-bottom: 0;">The background photo shown on your public booking page's first screen.</p>
+            </div>
+
+            <div style="border-radius: var(--r-md); overflow: hidden; margin-bottom: 1rem; aspect-ratio: 16/9; background: rgba(255,255,255,0.03); border: 1px solid var(--border);">
+                <img
+                   src="{{ $tenant->hero_image ? cloudinary()->image($tenant->hero_image)->toUrl() : 'https://images.unsplash.com/photo-1560066984-138dadb4c035?w=1800&q=85&auto=format&fit=crop' }}"
+                    alt="Current hero image"
+                    style="width:100%; height:100%; object-fit:cover; display:block;"
+                />
+            </div>
+
+            <form method="POST" action="{{ route('owner.settings.update') }}" enctype="multipart/form-data">
+                @csrf @method('PUT')
+                <input type="hidden" name="form_type" value="hero_image">
+
+                <div class="mb-3">
+                    <label class="lux-label" for="hero_image">Upload New Photo</label>
+                    <input type="file" name="hero_image" id="hero_image" accept="image/png,image/jpeg,image/webp" class="lux-input" required />
+                    <small style="color:var(--text-3);font-size:0.72rem;">JPG, PNG or WEBP — max 3MB. Landscape photos work best.</small>
+                </div>
+
+                <div style="padding-top: 0.5rem;">
+                    <button type="submit" class="btn-lux-gold btn-sm" data-loading-text="Uploading...">
+                        <i class="bi bi-upload" aria-hidden="true"></i> Update Hero Image
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <!-- Operating Hours Panel -->
     <div class="col-12 col-xl-6 fade-up s2">
         <div class="card-lux p-4 h-100">

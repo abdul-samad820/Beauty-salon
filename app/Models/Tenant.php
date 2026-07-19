@@ -24,6 +24,7 @@ class Tenant extends Model
         'trial_ends_at',
         'instagram_url',
         'facebook_url',
+        'hero_image',
     ];
 
     protected $casts = [

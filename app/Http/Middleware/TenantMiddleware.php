@@ -25,9 +25,15 @@ class TenantMiddleware
         }
 
         // Retrieve the active tenant from the database
-        $tenant = Tenant::where('slug', $slug)
-            ->where('status', 'active')
-            ->first();
+        // 30 second ke liye cache karte hain — API requests pe har
+        // request ka DB round-trip bachane ke liye
+        $tenant = \Illuminate\Support\Facades\Cache::remember(
+            'tenant:slug:'.$slug,
+            30,
+            fn () => Tenant::where('slug', $slug)
+                ->where('status', 'active')
+                ->first()
+        );
 
         // Return 404 if the tenant is not found or is inactive
         if (! $tenant) {

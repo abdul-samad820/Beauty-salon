@@ -26,9 +26,13 @@
         <article class="card-lux p-4 h-100 d-flex flex-column" style="position: relative;">
 
             <div style="display: flex; align-items: flex-start; gap: 1rem;">
+                @if($s->user?->profile_photo)
+               <img src="{{ cloudinary()->image($s->user->profile_photo)->toUrl() }}" alt="{{ $s->user->name }}" style="width: 48px; height: 48px; flex-shrink: 0; border-radius: 50%; object-fit: cover; border: 1px solid var(--border-2);" />
+                @else
                 <div style="width: 48px; height: 48px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--bg-input); border: 1px solid var(--border-2); font-size: 1rem; font-weight: 600; letter-spacing: 1px; color: var(--text-2);" aria-hidden="true">
                     {{ strtoupper(substr($s->user?->name ?? 'S', 0, 2)) }}
                 </div>
+                @endif
 
                 <div style="flex: 1; min-width: 0;">
                     <h4 class="serif truncate" style="font-size: 1.1rem; font-weight: 500; color: var(--text); margin-bottom: 0;">
@@ -136,11 +140,16 @@
 </div>
 @endif
 <x-cards.modal id="addStaffModal" title="Add Staff Member Account">
-    <form method="POST" id="staffForm" action="{{ route('owner.staff.store') }}">
+    <form method="POST" id="staffForm" action="{{ route('owner.staff.store') }}" enctype="multipart/form-data">
         @csrf
         <span id="staffMethodField"></span>
 
         <div class="row g-3">
+            <div class="col-12">
+                <label class="lux-label" for="photo">Profile Photo (shown on your public booking page)</label>
+                <input type="file" name="photo" id="photo" accept="image/png,image/jpeg,image/webp" class="lux-input" />
+                <small style="color:var(--text-3);font-size:0.72rem;">JPG, PNG or WEBP — max 2MB. Leave blank to keep the current photo.</small>
+            </div>
             <div id="addOnlyFields" class="col-12 row g-3 m-0 p-0">
                 <div class="col-12">
                     <x-forms.input name="email" id="email" label="Professional Login Email Address *" type="email" :required="true" />

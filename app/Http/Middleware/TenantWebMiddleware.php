@@ -37,9 +37,15 @@ class TenantWebMiddleware
         }
 
         // Retrieve the tenant and verify active status
-        $tenant = Tenant::where('id', $user->tenant_id)
-            ->where('status', 'active')
-            ->first();
+        // Redis mein 30 second ke liye cache karte hain — har request pe
+        // Paris (Clever Cloud) tak DB round-trip se bachne ke liye
+        $tenant = \Illuminate\Support\Facades\Cache::remember(
+            'tenant:'.$user->tenant_id,
+            30,
+            fn () => Tenant::where('id', $user->tenant_id)
+                ->where('status', 'active')
+                ->first()
+        );
 
         if (! $tenant) {
             Auth::logout();

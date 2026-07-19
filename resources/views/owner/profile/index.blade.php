@@ -132,7 +132,7 @@
                     <div class="col-12 d-flex align-items-center gap-4 mb-3">
                         <div style="width:80px;height:80px;border-radius:50%;overflow:hidden;border:2px solid var(--gold);flex-shrink:0;">
                             @if(auth()->user()->profile_photo)
-                          <img src="{{ Storage::disk('cloudinary')->url(auth()->user()->profile_photo) }}" style="width:100%;height:100%;object-fit:cover;" alt="Profile Photo">
+                         <img src="{{ cloudinary()->image(auth()->user()->profile_photo)->toUrl() }}" style="width:100%;height:100%;object-fit:cover;" alt="Profile Photo">
                             @else
                             <div style="width:100%;height:100%;background:var(--gold-dim);display:flex;align-items:center;justify-content:center;font-size:1.5rem;font-weight:700;color:var(--gold);">
                                 {{ strtoupper(substr(auth()->user()->name, 0, 2)) }}

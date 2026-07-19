@@ -113,7 +113,7 @@
             </div>
 
             <div class="lux-table-wrapper mt-auto" style="margin-top: 1rem;">
-                <table class="lux-table">
+               <table class="lux-table" style="width: 100%;">
                     <tbody>
                         @forelse($topServices ?? [] as $svc)
                         <tr>

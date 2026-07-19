@@ -7,6 +7,7 @@ use App\Models\Plan;
 use App\Models\Staff;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
@@ -53,11 +54,16 @@ class StaffWebController extends Controller
             'password' => 'required|min:8|confirmed',
             'commission_percent' => 'required|numeric|min:0|max:50',
             'specializations' => 'nullable|string',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ], [
             'email.unique' => 'This email is already registered in the system. If this person is an existing customer, please use a different email for their staff account.',
         ]);
 
         DB::transaction(function () use ($request, $tenant) {
+            $photoPath = $request->hasFile('photo')
+                ? $request->file('photo')->store('profile-photos', 'cloudinary')
+                : null;
+
             $user = User::create([
                 'tenant_id' => $tenant->id,
                 'name' => $request->name,
@@ -66,6 +72,7 @@ class StaffWebController extends Controller
                 'password' => Hash::make($request->password),
                 'is_active' => true,
                 'email_verified_at' => now(),
+                'profile_photo' => $photoPath,
             ]);
             $user->assignRole('staff');
 
@@ -88,6 +95,8 @@ class StaffWebController extends Controller
             ]);
         });
 
+        Cache::forget("landing_staff_{$tenant->id}");
+
         return back()->with('success', "Staff member \"{$request->name}\" added successfully.");
     }
 
@@ -105,13 +114,23 @@ class StaffWebController extends Controller
             'commission_percent' => 'required|numeric|min:0|max:50',
             'specializations' => 'nullable|string',
             'is_available' => 'sometimes|boolean',
+            'photo' => 'nullable|image|mimes:jpeg,png,jpg,webp|max:2048',
         ]);
 
         DB::transaction(function () use ($request, $staff) {
-            $staff->user->update([
+            $userData = [
                 'name' => $request->name,
                 'phone' => $request->phone,
-            ]);
+            ];
+
+            if ($request->hasFile('photo')) {
+                if ($staff->user->profile_photo) {
+                    \Storage::disk('cloudinary')->delete($staff->user->profile_photo);
+                }
+                $userData['profile_photo'] = $request->file('photo')->store('profile-photos', 'cloudinary');
+            }
+
+            $staff->user->update($userData);
 
             $specs = $request->specializations
                 ? array_map('trim', explode(',', $request->specializations))
@@ -123,6 +142,8 @@ class StaffWebController extends Controller
                 'is_available' => $request->boolean('is_available', $staff->is_available),
             ]);
         });
+
+        Cache::forget("landing_staff_{$tenant->id}");
 
         return back()->with('success', 'Staff member updated successfully.');
     }
@@ -144,6 +165,8 @@ class StaffWebController extends Controller
             }
             $staff->update(['is_available' => false]);
         });
+
+        Cache::forget("landing_staff_{$tenant->id}");
 
         return back()->with('success', 'Staff member deactivated successfully.');
     }

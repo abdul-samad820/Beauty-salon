@@ -14,7 +14,7 @@
          <div class="gallery-grid reveal">
              @forelse($gallery as $index => $image)
              <div class="gallery-item g{{ $index + 1 }}">
-                <img src="{{ Storage::disk('cloudinary')->url($image->image) }}" alt="{{ $image->caption ?? 'Gallery' }}" />
+               <img src="{{ cloudinary()->image($image->image)->toUrl() }}" alt="{{ $image->caption ?? 'Gallery' }}" />
                  <div class="g-overlay"><i class="bi bi-zoom-in g-icon"></i></div>
              </div>
              @empty

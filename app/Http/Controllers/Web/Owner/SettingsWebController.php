@@ -64,6 +64,28 @@ class SettingsWebController extends Controller
             return back()->with('success', 'Success: Operating hours updated successfully.');
         }
 
+        if ($type === 'hero_image') {
+            $request->validate([
+                'hero_image' => 'required|image|mimes:jpeg,png,jpg,webp|max:3048',
+            ]);
+
+            $file = $request->file('hero_image');
+            $imageInfo = @getimagesize($file->getRealPath());
+
+            if ($imageInfo === false) {
+                return back()->withErrors(['hero_image' => 'Uploaded file is not a valid image.']);
+            }
+
+            if ($tenant->hero_image) {
+                \Storage::disk('cloudinary')->delete($tenant->hero_image);
+            }
+
+            $path = $file->store('hero', 'cloudinary');
+            $tenant->update(['hero_image' => $path]);
+
+            return back()->with('success', 'Success: Landing page hero image updated successfully.');
+        }
+
         return back()->with('error', 'Invalid form submission.');
     }
 
