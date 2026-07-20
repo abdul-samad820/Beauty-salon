@@ -256,6 +256,7 @@ section {
     ===================================================== */
 #hero {
     height: 100vh;
+    height: 100dvh;
     min-height: 700px;
     background: var(--charcoal);
     display: flex;
@@ -280,10 +281,11 @@ section {
     position: absolute;
     inset: 0;
     background: linear-gradient(
-        135deg,
-        rgba(26, 26, 26, 0.82) 0%,
-        rgba(26, 26, 26, 0.45) 55%,
-        rgba(45, 125, 111, 0.18) 100%
+        180deg,
+        rgba(26, 26, 26, 0.75) 0%,
+        rgba(26, 26, 26, 0.35) 45%,
+        rgba(26, 26, 26, 0.55) 75%,
+        rgba(26, 26, 26, 0.85) 100%
     );
 }
 .hero-content {
@@ -1378,41 +1380,59 @@ section {
         background-position: 200% 50%;
     }
 }
+/* =========================================================
+   TEAM SECTION — Overlapping Photo Card
+   Uses LUMIÈRE brand tokens: --teal, --cream, --gold, --charcoal
+   ========================================================= */
 
 .team-ov-section {
     background: var(--cream, #f5f0ea);
     padding: 6rem 0;
 }
 
-
+/* -----------------------------------------------------------
+   CARD WRAPPER
+   margin-top reserves room for the top half of the photo,
+   which floats ABOVE the card (that's the "overlap" space).
+   ----------------------------------------------------------- */
 .team-ov-card {
     position: relative;
-    margin-top: 160px;          
+    margin-top: 160px;          /* = 50% of photo height (320px) */
     height: calc(100% - 160px);
 }
 
+/* -----------------------------------------------------------
+   PHOTO
+   Absolutely positioned so exactly 50% of its height sits
+   above the card top edge, and 50% overlaps down into it.
+   ----------------------------------------------------------- */
 .team-ov-card__photo-wrap {
     position: absolute;
-    top: -160px;             
+    top: -160px;                /* pulls photo up by 50% of its own height */
     left: 6%;
     width: 88%;
     height: 320px;
     border-radius: 12px;
     overflow: hidden;
     z-index: 2;
+    background: var(--teal-dim, #f0f5f4);  /* fills any gap left by object-fit:contain */
     box-shadow: 0 18px 40px rgba(26, 26, 26, 0.18);
 }
 
 .team-ov-card__photo {
     width: 100%;
     height: 100%;
-    object-fit: cover;
-    object-position: top center;
+    object-fit: contain;        /* shows the FULL photo, nothing cropped */
+    object-position: center;
     display: block;
     transition: transform 0.3s ease;
 }
 
-
+/* -----------------------------------------------------------
+   BODY (white content box)
+   padding-top = overlap amount (160px) + breathing room (20px)
+   so text always starts just below the photo's visible bottom edge.
+   ----------------------------------------------------------- */
 .team-ov-card__body {
     position: relative;
     z-index: 1;
@@ -1474,6 +1494,9 @@ section {
     color: #fff;
 }
 
+/* -----------------------------------------------------------
+   HOVER EFFECTS — card lifts, photo zooms
+   ----------------------------------------------------------- */
 .team-ov-card:hover .team-ov-card__body {
     transform: translateY(-8px);
     box-shadow: 0 22px 45px rgba(26, 26, 26, 0.12);
@@ -1483,7 +1506,9 @@ section {
     transform: scale(1.06);
 }
 
-
+/* -----------------------------------------------------------
+   FALLBACK PANEL (no photo uploaded yet) — initials avatar
+   ----------------------------------------------------------- */
 .team-ov-card__photo-fallback {
     width: 100%;
     height: 100%;
@@ -1497,6 +1522,12 @@ section {
     font-weight: 300;
 }
 
+/* -----------------------------------------------------------
+   RESPONSIVE
+   Bootstrap breakpoints: <768px = mobile (1/row),
+   768–991px = tablet (2/row), >=992px = desktop (3/row)
+   Grid classes handle column count; here we only tune sizing.
+   ----------------------------------------------------------- */
 @media (max-width: 767.98px) {
     .team-ov-card {
         margin-top: 130px;

@@ -40,7 +40,9 @@
                         </p>
 
                         <div class="team-ov-card__socials">
+                            @if($member->user->phone)
                             <a href="tel:{{ $member->user->phone }}"><i class="bi bi-telephone-fill"></i></a>
+                            @endif
                         </div>
                     </div>
 
